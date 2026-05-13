@@ -18,6 +18,7 @@
 
 - 规格与产品语义：读 [SPEC.md](./SPEC.md)
 - 实施路线与阶段任务：读 [PLAN.md](./PLAN.md)
+- 当前进展、阻塞与下一步：读 [STATUS.md](./STATUS.md)
 - 仓库基线与现状事实：读 [docs/cass/BASELINE_NOTES.md](./docs/cass/BASELINE_NOTES.md)
 
 当任务涉及 source 协议、架构边界、里程碑、upstream merge 约束时，必须先阅读对应文档，不要只凭记忆或猜测实现。
@@ -55,7 +56,7 @@ source.error
 编辑代码之前，必须：
 
 1. 检查现有项目约定与最小需要修改的文件集合。
-2. 判断是否需要先阅读 [SPEC.md](./SPEC.md)、[PLAN.md](./PLAN.md) 或 [docs/cass/BASELINE_NOTES.md](./docs/cass/BASELINE_NOTES.md)。
+2. 判断是否需要先阅读 [SPEC.md](./SPEC.md)、[PLAN.md](./PLAN.md)、[STATUS.md](./STATUS.md) 或 [docs/cass/BASELINE_NOTES.md](./docs/cass/BASELINE_NOTES.md)。
 3. 优先复用已有 API、service、store、watcher、SSE、测试机制。
 4. 说明实现计划与主要改动面。
 5. 若实现会触碰 fork 边界或破坏 upstream merge 可维护性，先停止并说明原因。
@@ -78,7 +79,8 @@ source.error
 2. 如果无法运行测试，说明原因。
 3. 汇报已修改的文件。
 4. 汇报风险与后续工作。
-5. 若规格或计划有变化，同步更新 [SPEC.md](./SPEC.md)、[PLAN.md](./PLAN.md) 以及 `docs/cass` 下的权威文档。
+5. 更新 [STATUS.md](./STATUS.md)，反映进度。
+6. 若规格或计划有变化，同步更新 [SPEC.md](./SPEC.md)、[PLAN.md](./PLAN.md) 以及 `docs/cass` 下的权威文档。
 
 ## 非目标
 
@@ -95,4 +97,5 @@ source.error
 
 - [SPEC.md](./SPEC.md) 是根目录规格入口，权威内容指向 [docs/cass/ca-session-source-prd.md](./docs/cass/ca-session-source-prd.md)。
 - [PLAN.md](./PLAN.md) 是根目录实施入口，权威内容指向 [docs/cass/ca-session-source-plan.md](./docs/cass/ca-session-source-plan.md)。
+- [STATUS.md](./STATUS.md) 是当前进展真相，记录实际状态、阻塞与下一步。
 - [docs/cass/BASELINE_NOTES.md](./docs/cass/BASELINE_NOTES.md) 记录仓库基线事实。

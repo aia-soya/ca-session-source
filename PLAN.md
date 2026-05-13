@@ -2,6 +2,8 @@
 
 本项目的详细实施计划以 [docs/cass/ca-session-source-plan.md](./docs/cass/ca-session-source-plan.md) 为准。
 
+当前实际进展、阻塞与下一步以 [STATUS.md](./STATUS.md) 为准。
+
 当前实施路线简要如下：
 
 1. 稳定 fork 基线与 upstream merge 策略。
