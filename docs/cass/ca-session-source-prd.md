@@ -1,17 +1,18 @@
-# ca-session-source PRD  
+# ca-session-source PRD
+
 基于 AgentsView fork 的 CA 本地 T/S Source 基础设施
 
 ## 1. 产品定位
 
 **ca-session-source** 是基于 AgentsView fork 构建的本地 Coding Agent T/S Source 基础设施。
 
-它复用 AgentsView 已有的本地 session discovery、parser、sync、SQLite、REST API、SSE 与前端浏览能力，为 DevCompass、WU Room、DevShare、WU Lab 提供统一的 CA Thread / Session transcript 数据源。
+它复用 AgentsView 已有的本地 session discovery、parser、sync、SQLite、REST API、SSE 与前端浏览能力，为本仓内的 source facade、Source API、TypeScript SDK 以及未来消费方提供统一的 Coding Agent Thread / Session transcript 数据源。
 
 一句话：
 
 > ca-session-source 只回答：**本机 Coding Agent 产生了哪些 T/S，它们发生了什么变化。**
 
-它不负责 WU 识别、不负责项目管理、不负责分享房间、不负责标注分析。
+它不负责项目管理、协作分享、标注分析、业务判断或其它上层产品逻辑。
 
 AgentsView 本身已经具备本地优先、自动发现多种 coding agent sessions、同步到 SQLite、REST/SSE 查询与 live updates 等能力，因此本项目应以 fork 增强为主，而不是重写一套 ingestion。
 
@@ -20,10 +21,10 @@ AgentsView 本身已经具备本地优先、自动发现多种 coding agent sess
 ## 2. 核心目标
 
 1. 复用 AgentsView 的 CA session 发现、解析、同步和查询能力。
-2. 将 AgentsView 的 T/S 数据源能力整理成稳定的 Source API / SDK。
-3. 支持 DevCompass 持续监听 CA T/S，发现 WU 候选与 WU 变更。
-4. 支持 WU Room / DevShare 持续监听并转发 transcript。
-5. 支持 WU Lab 在 AgentsView fork 内继续做标注、比较、验证增强。
+2. 将 AgentsView 的 T/S 数据源能力整理成稳定的 Source Facade、Source API 与 TypeScript SDK。
+3. 支持消费方通过 SDK / Source API 查询 sessions、messages、tool calls。
+4. 支持消费方通过 source event stream 监听 transcript 变化。
+5. 稳定消息锚点、增量消费与错误事件语义。
 6. 保持对 upstream AgentsView 的可合并性。
 
 ---
@@ -35,13 +36,11 @@ AgentsView 本身已经具备本地优先、自动发现多种 coding agent sess
 1. 不重写 AgentsView parser。
 2. 不重写 AgentsView sync engine。
 3. 不修改 AgentsView 原始 session / message 核心语义。
-4. 不把 WU、Room、Annotation 业务逻辑放入 source 层。
+4. 不把项目管理、协作分享、标注分析或其它上层业务逻辑放入 source 层。
 5. 不做独立云服务。
 6. 不做复杂权限系统。
 7. 不重建 transcript browser。
-8. 不复制 AgentsView analytics、pins、stars、insights 等产品功能给上层产品。
-
-WU Lab 也应继续遵守“标注层独立、只读引用 AgentsView sessions/messages、不污染原始数据”的边界。
+8. 不复制 AgentsView analytics、pins、stars、insights 等产品功能给 source 层。
 
 ---
 
@@ -59,8 +58,8 @@ agentsview fork
   ├── existing REST / SSE
   ├── existing frontend
   ├── source API compatibility layer
-  ├── source SDK
-  └── WU Lab modules
+  ├── source facade
+  └── source SDK
 ```
 
 ### 4.2 最小侵入
@@ -101,67 +100,59 @@ GET /api/v1/sessions/{id}/watch
 GET /api/v1/events
 ```
 
-AgentsView 当前 server 已经提供 sessions、messages、tool-calls、watch、events、sync 等 API 路由，应优先作为 source API 的底座。
+AgentsView 当前 server 已经提供 sessions、messages、tool-calls、watch、events、sync 等 API 路由，应优先作为 Source API 的底座。
 
-### 4.4 上层产品隔离
+### 4.4 消费方隔离
 
 ```text
 ca-session-source
   只提供 transcript source
 
-DevCompass
-  WU detection / projection
-
-WU Room / DevShare
-  transcript relay / review / comment
-
-WU Lab
-  annotation / compare / verification
+source API / SDK 消费方
+  只依赖稳定 source contract
+  不直接耦合 AgentsView 内部实现
 ```
+
+source 层只输出源数据、增量事件与基础健康信息，不承载消费方业务模型。
 
 ---
 
-## 5. 核心使用方
+## 5. 核心交付面
 
-### 5.1 DevCompass
+### 5.1 Source Facade
 
-DevCompass 订阅 session/message 变化，生成 WU signal。
+Source Facade 是本仓内部的窄服务层，用于把 AgentsView 的 db/store/service 能力整理成 source-oriented DTO 与方法。
 
-```text
-ca-session-source event
-  -> DevCompass source adapter
-  -> WU signal
-  -> WU projection
-```
-
-### 5.2 WU Room / DevShare
-
-WU Room / DevShare 订阅 transcript 更新，转发给 room viewer。
+职责：
 
 ```text
-ca-session-source event
-  -> local relay
-  -> cloud gateway
-  -> room frontend
+AgentsView Store / Service
+  -> Source DTO
+  -> Source API / SDK
 ```
 
-### 5.3 WU Lab
+### 5.2 Source API
 
-WU Lab 继续在 AgentsView fork 内工作。
+Source API 是消费方长期依赖的 HTTP / SSE contract。
 
-短期：
+首期可以复用 `/api/v1/*`；当协议需要稳定时，新增 `/api/source/v1/*` facade。
+
+### 5.3 TypeScript SDK
+
+TypeScript SDK 屏蔽 HTTP / SSE 细节，让消费方通过稳定 client 读取 sessions、messages、tool calls 并订阅事件。
+
+### 5.4 Source Event Stream
+
+Source Event Stream 输出稳定 source 事件：
 
 ```text
-WU Lab -> AgentsView DB / Store
+session.created
+session.updated
+message.appended
+source.error
 ```
 
-中期：
-
-```text
-WU Lab -> SourceReader -> source API / DB adapter
-```
-
-WU Lab 当前设计已经采用 `SourceReader` 作为访问原始 session/message 的边界，这是后续接入 ca-session-source 的正确接口。
+SSE transport 可以额外发送 keepalive，但 keepalive 不属于 SourceEvent 领域事件。
 
 ---
 
@@ -169,7 +160,7 @@ WU Lab 当前设计已经采用 `SourceReader` 作为访问原始 session/messag
 
 ### 6.1 首期形态
 
-首期不是独立第五仓库，而是 AgentsView fork 内的增强模块。
+首期不是独立新仓库，而是 AgentsView fork 内的增强模块。
 
 ```text
 agentsview fork
@@ -269,6 +260,8 @@ type SourceMessage = {
 
 AgentsView 的 messages 表已经以 `(session_id, ordinal)` 作为 session 内 message 顺序锚点，并保存 thinking、tool use、model、token usage、source_uuid 等字段。
 
+首期消息锚点采用 `sessionId + messageOrdinal`，并在 DTO 中保留 `sourceUuid`、`sourceType` 等字段以便后续增强。
+
 ### 7.4 ToolCall
 
 沿用 AgentsView tool_calls。
@@ -287,7 +280,7 @@ type SourceToolCall = {
 
 ### 7.5 SourceEvent
 
-面向上层产品的稳定事件。
+面向消费方的稳定事件。
 
 ```ts
 type SourceEvent =
@@ -345,7 +338,7 @@ type SourceEvent =
 - 启动时执行 initial sync。
 - 文件变化后增量 sync。
 - 支持手动 sync / resync。
-- 不在 source 层加入 WU / Room / Annotation 逻辑。
+- 不在 source 层加入上层业务逻辑。
 - 不改变 AgentsView 已有 session/message 写入语义。
 
 ### 8.3 Watch
@@ -358,7 +351,8 @@ type SourceEvent =
 - 支持 debounce。
 - 支持 watcher 不可用时 fallback polling。
 - 支持 SSE 事件。
-- 对上层产品暴露 source-oriented event stream。
+- 对消费方暴露 source-oriented event stream。
+- 对外事件契约包含 `session.created`、`session.updated`、`message.appended`、`source.error`。
 
 AgentsView 已有 fsnotify watcher，支持递归/浅层 watch、debounce、exclude、新目录自动 watch、watch budget 等能力，适合直接复用。
 
@@ -393,7 +387,7 @@ POST /api/source/v1/sync
 
 首期原则：
 
-> 能复用 `/api/v1/*` 就不新增；只有上层产品需要稳定协议时，才加 `/api/source/v1/*` facade。
+> 能复用 `/api/v1/*` 就不新增；只有消费方需要稳定协议时，才加 `/api/source/v1/*` facade。
 
 ### 8.5 SDK
 
@@ -406,95 +400,44 @@ const sessions = await client.listSessions()
 const messages = await client.getMessages(sessionId)
 
 client.watchEvents(event => {
-  // DevCompass / WU Room / DevShare consume event
+  // source API / SDK consumer handles event
 })
 ```
 
-SDK 不包含 WU、Room、Annotation 业务模型。
+SDK 不包含任何上层业务模型。
 
 ---
 
-## 9. WU Lab 对齐
+## 9. 消费边界
 
-WU Lab 仍作为 AgentsView fork 内的增强模块。
-
-要求：
-
-- 不重写 AgentsView session ingestion。
-- 不修改原始 session/message 表语义。
-- WU Lab 数据使用独立 `wu_` 表。
-- WU Lab 后端放在独立模块。
-- WU Lab 前端放在独立模块。
-- 通过 SourceReader 访问原始 session/message。
-
-当前 WU Lab 架构已经要求 API 使用 `/api/wu-lab/*`，后端模块独立，数据表使用 `wu_` 前缀，不修改原始 session/message，前端只做轻量 ViewModel 和交互状态。
-
----
-
-## 10. DevCompass 接入
-
-DevCompass 作为外部 monorepo，不直接 import WU Lab 或 AgentsView 内部代码。
-
-接入方式：
+消费方通过 SDK 或 HTTP/SSE 接入。
 
 ```text
-DevCompass
+consumer
   -> @aia/ca-session-source-client
-  -> AgentsView fork source API
+  -> Source API
+  -> Source Facade
+  -> AgentsView sessions/messages/tool_calls
 ```
 
-DevCompass 内部负责：
+消费方可以自行决定如何处理 transcript，但 source 层不提供业务投影、协作状态、标注状态或分享状态。
+
+本仓只保证：
 
 ```text
-source event
-  -> WuSignal
-  -> WuCandidate
-  -> WuChange
-  -> ProjectProjection
-```
-
-DevCompass 不负责：
-
-```text
-Codex parser
-Claude parser
-OpenCode parser
-file watcher
-transcript SQLite schema
+session listing
+session detail
+message listing
+tool-call listing
+event stream
+health/version
 ```
 
 ---
 
-## 11. WU Room / DevShare 接入
+## 10. Upstream Merge 策略
 
-WU Room / DevShare 作为外部 monorepo，通过 SDK 或 HTTP/SSE 接入。
-
-```text
-WU Room / DevShare
-  -> source event stream
-  -> fetch session messages
-  -> relay transcript
-  -> room viewer
-```
-
-它们只维护：
-
-```text
-room
-share link
-viewer state
-comments
-relay state
-auth
-```
-
-不维护 CA parser / watcher。
-
----
-
-## 12. Upstream Merge 策略
-
-### 12.1 不移动 upstream 核心代码
+### 10.1 不移动 upstream 核心代码
 
 首期不移动：
 
@@ -506,7 +449,7 @@ internal/server
 frontend existing session viewer
 ```
 
-### 12.2 新增代码集中放置
+### 10.2 新增代码集中放置
 
 新增代码集中在：
 
@@ -518,7 +461,7 @@ docs/source/
 frontend/src/source-debug/，可选
 ```
 
-### 12.3 修改点保持薄
+### 10.3 修改点保持薄
 
 对 upstream 文件的修改应尽量只做：
 
@@ -530,7 +473,7 @@ event adapter
 build script extension
 ```
 
-### 12.4 Fork Patch 可审计
+### 10.4 Fork Patch 可审计
 
 每次 upstream merge 后，只检查少数集成点。
 
@@ -544,7 +487,7 @@ frontend route registration，可选
 
 ---
 
-## 13. MVP 范围
+## 11. MVP 范围
 
 ### Must Have
 
@@ -552,10 +495,10 @@ frontend route registration，可选
 基于 AgentsView fork
 复用 AgentsView parser/discovery/sync/db/server
 Source API 文档
+SourceService facade
+SourceEvent schema
+message.appended event
 TypeScript SDK
-DevCompass adapter spike
-WU Room / DevShare adapter spike
-WU Lab SourceReader 对齐
 SSE event consumption
 ```
 
@@ -563,10 +506,10 @@ SSE event consumption
 
 ```text
 /api/source/v1 facade
-message.appended event
 source health/version endpoint
 SDK daemon discovery
 source event schema version
+source debug page
 ```
 
 ### Could Have
@@ -579,22 +522,22 @@ OpenAPI generated client
 source debug page
 ```
 
-### Won’t Have in MVP
+### 不在 MVP 范围
 
 ```text
-独立第五仓库
+独立新仓库
 重写 parser
 重写 sync engine
 云端同步
-WU detection
-room sharing
-annotation compare
+项目管理逻辑
+协作分享逻辑
+标注分析逻辑
 完整新 UI
 ```
 
 ---
 
-## 14. 验收标准
+## 12. 验收标准
 
 MVP 满足：
 
@@ -605,15 +548,14 @@ MVP 满足：
 5. 可通过 API 查询 tool calls。
 6. transcript 变化后可触发 SSE 更新。
 7. TypeScript SDK 可订阅事件并拉取 session/messages。
-8. DevCompass 可基于 SDK 监听 CA T/S 变化。
-9. WU Room / DevShare 可基于 SDK 拉取并转发 transcript。
-10. WU Lab 可继续基于 AgentsView 原始 session/message 做标注增强。
-11. 新增代码不破坏 upstream parser/sync/db/server 的核心行为。
-12. 后续 upstream merge 时，冲突集中在少量 wiring 文件。
+8. SourceEvent 对外包含 `session.created`、`session.updated`、`message.appended`、`source.error`。
+9. 消费方可基于 SDK 完成增量拉取闭环。
+10. 新增代码不破坏 upstream parser/sync/db/server 的核心行为。
+11. 后续 upstream merge 时，冲突集中在少量 wiring 文件。
 
 ---
 
-## 15. 推荐里程碑
+## 13. 推荐里程碑
 
 ### M0：基线与协议
 
@@ -635,10 +577,22 @@ fork patch map
 internal/source/
 SourceService interface
 复用 db.Store / service.SessionService
+source DTO
 source event model
 ```
 
-### M2：TypeScript SDK
+### M2：Source Event 与 SSE Adapter
+
+交付：
+
+```text
+SourceEvent schema
+Broadcaster adapter
+/api/source/v1/events，可选
+message.appended 语义补齐
+```
+
+### M3：TypeScript SDK
 
 交付：
 
@@ -651,28 +605,29 @@ getToolCalls()
 watchEvents()
 ```
 
-### M3：外部产品接入 Spike
+### M4：消费闭环验证
 
 交付：
 
 ```text
-DevCompass adapter spike
-WU Room / DevShare adapter spike
+SDK smoke harness
 event -> fetch incremental messages flow
+snapshot fetch flow
+feedback fixes
 ```
 
-### M4：WU Lab 对齐
+### M5：消息锚点与消费语义收敛
 
 交付：
 
 ```text
-WU Lab SourceReader
-AgentsViewDBSourceReader
-可选 CaSessionSourceReader
-session/message anchor 校验
+sessionId + messageOrdinal anchor policy
+sourceUuid / sourceType 预留策略
+增量消费说明
+兼容性测试
 ```
 
-### M5：Source API 稳定化
+### M6：Source API 稳定化
 
 交付：
 
@@ -686,18 +641,18 @@ upstream merge checklist
 
 ---
 
-## 16. 成功指标
+## 14. 成功指标
 
 短期：
 
 ```text
-DevCompass、WU Room、DevShare 不再各自实现 Codex / Claude transcript watcher
+本仓能通过 Source Facade / SDK 稳定读取 AgentsView sessions/messages/tool_calls
 ```
 
 中期：
 
 ```text
-所有外部产品通过同一套 SDK/API 消费 AgentsView fork 的 T/S source
+消费方通过同一套 SDK/API 消费 AgentsView fork 的 T/S source
 ```
 
 长期：

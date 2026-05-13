@@ -111,7 +111,7 @@
 - Transcript display-item 构造：[`frontend/src/lib/utils/display-items.ts`](../../frontend/src/lib/utils/display-items.ts)
 - 内容解析 / 增强：[`frontend/src/lib/utils/content-parser.ts`](../../frontend/src/lib/utils/content-parser.ts)
 
-未来 WUB UI 可能复用的相关组件：
+未来 ca-session-source UI / 调试页可能复用的相关组件：
 
 - 紧凑边界展示：[`frontend/src/lib/components/content/CompactBoundaryDivider.svelte`](../../frontend/src/lib/components/content/CompactBoundaryDivider.svelte)
 - System boundary 卡片：[`frontend/src/lib/components/system/SystemBoundaryCard.svelte`](../../frontend/src/lib/components/system/SystemBoundaryCard.svelte)
@@ -126,9 +126,9 @@
 - `messages.svelte.ts` 使用两种加载模式：
   - 小型 / 普通 session：完整升序拉取
   - 大型 session：先按倒序渐进加载，再按需加载更早消息
-- `MessageList.svelte` 是虚拟化 transcript 查看器，并且已经具备 display-item 抽象，后续可用于注入 WUB 标记。
+- `MessageList.svelte` 是虚拟化 transcript 查看器，并且已经具备 display-item 抽象，后续可用于注入 source 侧标记或调试信息。
 - 当前前端 `Message` 类型公开了 `id`、`ordinal` 等字段。
-- 对当前真实 Codex session 的 `/api/v1/sessions/{id}/messages` 返回，`source_uuid` 不可作为首期稳定可用字段，因此 WUB 首期更适合直接使用 `(session_id, ordinal)`。
+- 对当前真实 Codex session 的 `/api/v1/sessions/{id}/messages` 返回，`source_uuid` 不可作为首期稳定可用字段，因此 ca-session-source 首期更适合直接使用 `(session_id, ordinal)`。
 
 ### 后端 / API
 
@@ -155,7 +155,7 @@
 - `messages` 表已包含 `source_uuid` 与 `source_parent_uuid` 字段。
 - 后端 `internal/db/messages.go` 已将 `SourceUUID` 暴露在 Go `Message` struct 中。
 - 仓库中已有明确约定：`source_uuid` 比 `ordinal` 更稳定，消息重写或插入新边界行后，`ordinal` 可能漂移，但 `source_uuid` 更适合作为追踪键。
-- 但对当前真实 Codex session，`/messages` API 返回中并不能稳定看到 `source_uuid`，因此 WUB 首期锚点直接采用 `(session_id, ordinal)` 更现实。
+- 但对当前真实 Codex session，`/messages` API 返回中并不能稳定看到 `source_uuid`，因此 ca-session-source 首期锚点直接采用 `(session_id, ordinal)` 更现实。
 
 ## API 路由图
 
@@ -163,7 +163,7 @@
 
 - [`internal/server/server.go`](../../internal/server/server.go)
 
-与未来 WUB 相关工作关系较大的路由集群包括：
+与未来 ca-session-source 相关工作关系较大的路由集群包括：
 
 - Sessions：
   - `GET /api/v1/sessions`
@@ -191,7 +191,7 @@
 
 - [`frontend/src/lib/api/client.ts`](../../frontend/src/lib/api/client.ts)
 
-如果后续通过新的后端 API 或 mashup API 暴露 WUB 数据，这里会是主要的前端集成点。
+如果后续通过新的后端 API 或 source API 暴露 ca-session-source 数据，这里会是主要的前端集成点。
 
 ## 开发 / 测试 / 构建命令
 
