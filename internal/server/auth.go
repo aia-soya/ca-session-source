@@ -118,7 +118,9 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 // Authorization header. The query-param fallback exists because
 // browser EventSource cannot set headers.
 func isSSEPath(path string) bool {
-	return strings.HasSuffix(path, "/watch") || path == "/api/v1/events"
+	return strings.HasSuffix(path, "/watch") ||
+		path == "/api/v1/events" ||
+		path == "/api/source/v1/events"
 }
 
 // setCORSOnAuthError adds CORS headers to 401 responses so

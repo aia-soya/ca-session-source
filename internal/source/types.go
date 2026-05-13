@@ -59,14 +59,14 @@ type ToolCall struct {
 }
 
 type Event struct {
-	SchemaVersion  string    `json:"schema_version"`
+	SchemaVersion  string    `json:"schemaVersion"`
 	Type           EventType `json:"type"`
-	SessionID      string    `json:"session_id,omitempty"`
+	SessionID      string    `json:"sessionId,omitempty"`
 	Agent          string    `json:"agent,omitempty"`
-	MessageCount   *int      `json:"message_count,omitempty"`
-	MessageOrdinal *int      `json:"message_ordinal,omitempty"`
+	MessageCount   *int      `json:"messageCount,omitempty"`
+	MessageOrdinal *int      `json:"messageOrdinal,omitempty"`
 	Role           string    `json:"role,omitempty"`
-	SourcePath     string    `json:"source_path,omitempty"`
+	SourcePath     string    `json:"sourcePath,omitempty"`
 	Error          string    `json:"error,omitempty"`
 }
 

@@ -19,6 +19,7 @@ internal/web/dist/*
 
 # Test/build artifacts
 /dist/
+sdk/ts/*.tgz
 *.out
 coverage.out
 *.test

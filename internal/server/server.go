@@ -18,6 +18,7 @@ import (
 	"github.com/wesm/agentsview/internal/db"
 	"github.com/wesm/agentsview/internal/insight"
 	"github.com/wesm/agentsview/internal/service"
+	"github.com/wesm/agentsview/internal/source"
 	"github.com/wesm/agentsview/internal/sync"
 	"github.com/wesm/agentsview/internal/web"
 )
@@ -32,16 +33,17 @@ type VersionInfo struct {
 
 // Server is the HTTP server that serves the SPA and REST API.
 type Server struct {
-	mu          gosync.RWMutex
-	cfg         config.Config
-	db          db.Store
-	engine      *sync.Engine
-	sessions    service.SessionService
-	broadcaster *Broadcaster
-	mux         *http.ServeMux
-	httpSrv     *http.Server
-	version     VersionInfo
-	dataDir     string
+	mu           gosync.RWMutex
+	cfg          config.Config
+	db           db.Store
+	engine       *sync.Engine
+	sessions     service.SessionService
+	broadcaster  *Broadcaster
+	sourceEvents *sourceEventBroadcaster
+	mux          *http.ServeMux
+	httpSrv      *http.Server
+	version      VersionInfo
+	dataDir      string
 
 	// baseCtx, when set, is used as the base context for all
 	// incoming requests. Cancelling it causes SSE handlers to
@@ -103,6 +105,12 @@ func New(
 	}
 	for _, opt := range opts {
 		opt(s)
+	}
+	if s.engine != nil && s.broadcaster != nil {
+		s.sourceEvents = newSourceEventBroadcaster(
+			s.sourceEventContext(),
+			source.NewScopeEventWatchFunc(database, s.sourceScopeWatch),
+		)
 	}
 	s.routes()
 	return s
@@ -177,6 +185,13 @@ func WithGenerateStreamFunc(f insight.GenerateStreamFunc) Option {
 	}
 }
 
+func (s *Server) sourceEventContext() context.Context {
+	if s.baseCtx != nil {
+		return s.baseCtx
+	}
+	return context.Background()
+}
+
 func (s *Server) routes() {
 	// API v1 routes
 	s.mux.Handle("GET /api/v1/sessions", s.withTimeout(s.handleListSessions))
@@ -203,6 +218,10 @@ func (s *Server) routes() {
 	// SSE: Do not use timeout, as this is a long-lived connection.
 	s.mux.HandleFunc(
 		"GET /api/v1/events", s.handleEvents,
+	)
+	// SSE: Stable source event contract for source consumers.
+	s.mux.HandleFunc(
+		"GET /api/source/v1/events", s.handleSourceEvents,
 	)
 	// Export: Do not use timeout handler to support large downloads and avoid buffering.
 	s.mux.Handle(

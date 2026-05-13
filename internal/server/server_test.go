@@ -29,9 +29,10 @@ import (
 	"github.com/wesm/agentsview/internal/parser"
 	"github.com/wesm/agentsview/internal/server"
 	"github.com/wesm/agentsview/internal/service"
+	"github.com/wesm/agentsview/internal/source"
 	"github.com/wesm/agentsview/internal/sync"
-	"github.com/wesm/agentsview/internal/testutil"
 	"github.com/wesm/agentsview/internal/testjsonl"
+	"github.com/wesm/agentsview/internal/testutil"
 )
 
 // Timestamp constants for test data.
@@ -3381,6 +3382,146 @@ func TestEvents_AuthInvalidTokenReturns401(t *testing.T) {
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("got status %d, want 401", w.Code)
 	}
+}
+
+func TestSourceEvents_StreamsSourceEventAfterBroadcast(t *testing.T) {
+	te := setup(t)
+
+	dbtest.SeedSession(t, te.db, "source-sess", "proj", func(s *db.Session) {
+		s.Agent = "codex"
+		s.MessageCount = 1
+		s.UserMessageCount = 1
+	})
+	dbtest.SeedMessages(t, te.db, db.Message{
+		SessionID:     "source-sess",
+		Ordinal:       0,
+		Role:          "user",
+		Content:       "hello",
+		ContentLength: 5,
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	req := httptest.NewRequest(http.MethodGet, "/api/source/v1/events", nil).WithContext(ctx)
+	w := &flushRecorder{ResponseRecorder: httptest.NewRecorder()}
+
+	done := make(chan struct{})
+	go func() {
+		te.handler.ServeHTTP(w, req)
+		close(done)
+	}()
+
+	time.Sleep(100 * time.Millisecond)
+	dbtest.SeedSession(t, te.db, "source-sess", "proj", func(s *db.Session) {
+		s.Agent = "codex"
+		s.MessageCount = 2
+		s.UserMessageCount = 1
+	})
+	dbtest.SeedMessages(t, te.db, db.Message{
+		SessionID:     "source-sess",
+		Ordinal:       1,
+		Role:          "assistant",
+		Content:       "done",
+		ContentLength: 4,
+	})
+	te.broadcaster.Emit("messages")
+
+	te.waitForSSEEvent(t, w, "source_event", 3*time.Second)
+	cancel()
+	<-done
+
+	events := parseSSE(w.BodyString())
+	var payloads []source.Event
+	var rawPayloads []map[string]any
+	for _, ev := range events {
+		if ev.Event != "source_event" {
+			continue
+		}
+		var raw map[string]any
+		require.NoError(t, json.Unmarshal([]byte(ev.Data), &raw))
+		rawPayloads = append(rawPayloads, raw)
+		var payload source.Event
+		require.NoError(t, json.Unmarshal([]byte(ev.Data), &payload))
+		payloads = append(payloads, payload)
+	}
+
+	require.NotEmpty(t, payloads)
+	require.NotEmpty(t, rawPayloads)
+	assert.Equal(t, "ca-session.event.v1", rawPayloads[0]["schemaVersion"])
+	assert.Equal(t, "source-sess", rawPayloads[0]["sessionId"])
+	_, hasSnakeSchema := rawPayloads[0]["schema_version"]
+	_, hasSnakeSessionID := rawPayloads[0]["session_id"]
+	assert.False(t, hasSnakeSchema)
+	assert.False(t, hasSnakeSessionID)
+	assert.Equal(t, source.EventTypeSessionUpdated, payloads[0].Type)
+	require.Len(t, payloads, 2)
+	assert.Equal(t, source.EventTypeMessageAppended, payloads[1].Type)
+	require.NotNil(t, payloads[1].MessageOrdinal)
+	assert.Equal(t, 1, *payloads[1].MessageOrdinal)
+	assert.Equal(t, "assistant", payloads[1].Role)
+}
+
+func TestSourceEvents_ReturnsServiceUnavailableInPGMode(t *testing.T) {
+	te := setupPGMode(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/source/v1/events", nil)
+	w := httptest.NewRecorder()
+	te.handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("got status %d, want 503", w.Code)
+	}
+	if got := w.Header().Get("Retry-After"); got != "300" {
+		t.Errorf("got Retry-After %q, want 300", got)
+	}
+}
+
+func TestSourceEvents_AuthViaQueryTokenSucceeds(t *testing.T) {
+	te := setup(t, withAuth("secret"))
+
+	dbtest.SeedSession(t, te.db, "auth-source-sess", "proj", func(s *db.Session) {
+		s.Agent = "codex"
+		s.MessageCount = 1
+		s.UserMessageCount = 1
+	})
+	dbtest.SeedMessages(t, te.db, db.Message{
+		SessionID:     "auth-source-sess",
+		Ordinal:       0,
+		Role:          "user",
+		Content:       "hello",
+		ContentLength: 5,
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	req := httptest.NewRequest(http.MethodGet,
+		"/api/source/v1/events?token=secret", nil).WithContext(ctx)
+	w := &flushRecorder{ResponseRecorder: httptest.NewRecorder()}
+
+	done := make(chan struct{})
+	go func() {
+		te.handler.ServeHTTP(w, req)
+		close(done)
+	}()
+
+	time.Sleep(100 * time.Millisecond)
+	dbtest.SeedSession(t, te.db, "auth-source-sess", "proj", func(s *db.Session) {
+		s.Agent = "codex"
+		s.MessageCount = 2
+		s.UserMessageCount = 1
+	})
+	dbtest.SeedMessages(t, te.db, db.Message{
+		SessionID:     "auth-source-sess",
+		Ordinal:       1,
+		Role:          "assistant",
+		Content:       "done",
+		ContentLength: 4,
+	})
+	te.broadcaster.Emit("messages")
+	te.waitForSSEEvent(t, w, "source_event", 2*time.Second)
+
+	cancel()
+	<-done
 }
 
 // TestSessionWatch_AuthViaQueryTokenSucceeds guards the existing
