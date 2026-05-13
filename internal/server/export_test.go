@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/wesm/agentsview/internal/db"
+	"github.com/wesm/agentsview/internal/testutil"
 )
 
 // testSession returns a *db.Session with sensible defaults.
@@ -36,7 +37,9 @@ func stubServer(
 	t *testing.T, expectedMethod string, expectedToken string, status int, body string,
 ) *httptest.Server {
 	t.Helper()
-	return httptest.NewServer(
+	return testutil.NewTCPTestServer(
+		t,
+		"127.0.0.1:0",
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != expectedMethod {

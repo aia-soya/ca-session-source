@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/wesm/agentsview/internal/testutil"
 )
 
 // TestContentTypeWrapper verifies that Content-Type is only set if missing
@@ -110,16 +112,10 @@ func TestMiddlewareTimeout(t *testing.T) {
 	// Use a real listener to discover the bound port, then
 	// rebuild Handler() with the correct port in the Host
 	// allowlist.
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
+	ln := testutil.MustListenTCP(t, "127.0.0.1:0")
 	port := ln.Addr().(*net.TCPAddr).Port
 	srv.SetPort(port)
-	ts := httptest.NewUnstartedServer(srv.Handler())
-	ts.Listener = ln
-	ts.Start()
-	t.Cleanup(ts.Close)
+	ts := testutil.NewTCPTestServerWithListener(t, ln, srv.Handler())
 
 	tests := []struct {
 		name        string

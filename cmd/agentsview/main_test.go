@@ -84,6 +84,18 @@ func TestMustLoadConfig(t *testing.T) {
 }
 
 func TestPrepareServeRuntimeConfigPortZeroUsesAssignedPort(t *testing.T) {
+	origFindAvailablePort := findAvailablePort
+	findAvailablePort = func(host string, start int) int {
+		if host != "127.0.0.1" {
+			t.Fatalf("host = %q, want %q", host, "127.0.0.1")
+		}
+		if start != 0 {
+			t.Fatalf("start = %d, want 0", start)
+		}
+		return 41234
+	}
+	t.Cleanup(func() { findAvailablePort = origFindAvailablePort })
+
 	cfg := config.Config{
 		Host: "127.0.0.1",
 		Port: 0,
@@ -102,13 +114,13 @@ func TestPrepareServeRuntimeConfigPortZeroUsesAssignedPort(t *testing.T) {
 	if err != nil {
 		t.Fatalf("prepareServeRuntimeConfig: %v", err)
 	}
-	if cfg.Port == 0 {
-		t.Fatal("Port remained literal 0")
+	if cfg.Port != 41234 {
+		t.Fatalf("Port = %d, want %d", cfg.Port, 41234)
 	}
 	if strings.Contains(out, "Port 0 in use") {
 		t.Fatalf("unexpected literal port 0 fallback message: %q", out)
 	}
-	if !strings.Contains(out, "Using available port") {
+	if !strings.Contains(out, "Using available port 41234") {
 		t.Fatalf("missing ephemeral port message: %q", out)
 	}
 }

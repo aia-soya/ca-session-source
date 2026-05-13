@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/wesm/agentsview/internal/testutil"
 )
 
 func TestWriteAndRemoveStateFile(t *testing.T) {
@@ -192,10 +194,7 @@ func TestFindRunningServer_LiveProcess(t *testing.T) {
 	dir := t.TempDir()
 
 	// Start a real TCP listener so the port probe succeeds.
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
+	ln := testutil.MustListenTCP(t, "127.0.0.1:0")
 	defer ln.Close()
 
 	port := ln.Addr().(*net.TCPAddr).Port
@@ -233,10 +232,7 @@ func TestFindRunningServer_LiveProcess(t *testing.T) {
 func TestFindRunningServer_BindAll(t *testing.T) {
 	dir := t.TempDir()
 
-	ln, err := net.Listen("tcp", "0.0.0.0:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
+	ln := testutil.MustListenTCP(t, "0.0.0.0:0")
 	defer ln.Close()
 
 	port := ln.Addr().(*net.TCPAddr).Port
@@ -549,10 +545,7 @@ func TestStartupLock_AtomicWrite(t *testing.T) {
 func TestWaitForStartup_AlreadyRunning(t *testing.T) {
 	dir := t.TempDir()
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
+	ln := testutil.MustListenTCP(t, "127.0.0.1:0")
 	defer ln.Close()
 
 	port := ln.Addr().(*net.TCPAddr).Port

@@ -24,6 +24,8 @@ type serveRuntime struct {
 	Caddy      *managedCaddy
 }
 
+var findAvailablePort = server.FindAvailablePort
+
 func prepareServeRuntimeConfig(
 	cfg config.Config,
 	opts serveRuntimeOptions,
@@ -33,7 +35,7 @@ func prepareServeRuntimeConfig(
 		requestedPort = cfg.Port
 	}
 
-	port := server.FindAvailablePort(cfg.Host, cfg.Port)
+	port := findAvailablePort(cfg.Host, cfg.Port)
 	if port != cfg.Port {
 		if cfg.Port == 0 {
 			fmt.Printf("Using available port %d\n", port)

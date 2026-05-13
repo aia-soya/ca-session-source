@@ -839,8 +839,11 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func FindAvailablePort(host string, start int) int {
 	if start == 0 {
 		addr := net.JoinHostPort(host, "0")
-		ln, err := net.Listen("tcp", addr)
-		if err == nil {
+		for range 3 {
+			ln, err := net.Listen("tcp", addr)
+			if err != nil {
+				continue
+			}
 			defer ln.Close()
 			if tcpAddr, ok := ln.Addr().(*net.TCPAddr); ok {
 				return tcpAddr.Port

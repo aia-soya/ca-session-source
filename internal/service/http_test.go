@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/wesm/agentsview/internal/dbtest"
 	"github.com/wesm/agentsview/internal/server"
 	"github.com/wesm/agentsview/internal/service"
+	"github.com/wesm/agentsview/internal/testutil"
 )
 
 // newHTTPTestServer builds an in-memory SQLite DB, constructs a
@@ -39,10 +39,7 @@ func newHTTPTestServerWithCfg(
 	t.Helper()
 	d := dbtest.OpenTestDB(t)
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
+	ln := testutil.MustListenTCP(t, "127.0.0.1:0")
 	port := ln.Addr().(*net.TCPAddr).Port
 
 	cfg := config.Config{
@@ -54,11 +51,7 @@ func newHTTPTestServerWithCfg(
 		AuthToken:    extra.AuthToken,
 	}
 	srv := server.New(cfg, d, nil)
-	ts := httptest.NewUnstartedServer(srv.Handler())
-	ts.Listener.Close()
-	ts.Listener = ln
-	ts.Start()
-	t.Cleanup(ts.Close)
+	ts := testutil.NewTCPTestServerWithListener(t, ln, srv.Handler())
 	return ts.URL, d
 }
 

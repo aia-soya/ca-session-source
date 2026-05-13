@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/wesm/agentsview/internal/config"
 	"github.com/wesm/agentsview/internal/server"
+	"github.com/wesm/agentsview/internal/testutil"
 )
 
 // freeTCPListener binds to a free loopback port and returns the
@@ -19,8 +20,7 @@ import (
 // stays alive so detectTransport's TCP probe succeeds.
 func freeTCPListener(t *testing.T) (net.Listener, int) {
 	t.Helper()
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
+	l := testutil.MustListenTCP(t, "127.0.0.1:0")
 	t.Cleanup(func() { l.Close() })
 	port := l.Addr().(*net.TCPAddr).Port
 	return l, port

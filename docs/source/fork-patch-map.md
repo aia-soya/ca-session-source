@@ -16,7 +16,7 @@
 
 说明：
 
-- 这意味着当前已验证的 fork patch 仍处于“文档基线阶段”，尚未引入 source facade / source API / SDK 代码层补丁。
+- 这反映的是 M0 完成时的起始基线；自 M1 起已经开始引入 source facade 代码层补丁。
 - 后续每当新增代码或薄改 upstream wiring，必须更新本文。
 
 ## 当前已审计补丁
@@ -33,6 +33,7 @@
 | `A` | `docs/cass/BASELINE_NOTES.md` | 记录 fork 基线与仓库现状事实 | 低 |
 | `A` | `docs/cass/ca-session-source-plan.md` | 记录 `ca-session-source` 研发计划 | 低 |
 | `A` | `docs/cass/ca-session-source-prd.md` | 记录 `ca-session-source` PRD | 低 |
+| `A` | `CONTRIBUTING.md` | 新增 fork 贡献约定，补齐非 agent 视角的协作边界 | 低 |
 
 ## 允许新增的 patch 面
 
@@ -83,6 +84,13 @@
 | 日期 | 类型 | 路径 | 归属里程碑 | 改动摘要 | merge 风险 | 验证方式 |
 | --- | --- | --- | --- | --- | --- | --- |
 | `YYYY-MM-DD` | `A/M/D` | `internal/source/...` | `M1` | 例如：新增 SourceService facade | 低/中/高 | 单测 / smoke test |
+| `2026-05-13` | `A` | `internal/source/service.go` | `M1` | 新增 Source Facade 窄接口与事件注入 seam | 低 | `go test ./internal/source -count=1` |
+| `2026-05-13` | `A` | `internal/source/types.go` | `M1` | 新增 source DTO、分页与 filter 类型，隔离 DB 类型泄漏 | 低 | `go test ./internal/source -count=1` |
+| `2026-05-13` | `A` | `internal/source/agentsview_service.go` | `M1` | 新增 `db.Store -> source DTO` 薄适配实现 | 低 | `go test ./internal/source -count=1` |
+| `2026-05-13` | `A` | `internal/source/filters.go` | `M1` | 拆出 source facade filter 校验与转换逻辑 | 低 | `go test ./internal/source -count=1` |
+| `2026-05-13` | `A` | `internal/source/hydration.go` | `M1` | 拆出 full-session hydration 策略与批量补齐逻辑 | 低 | `go test ./internal/source -count=1` |
+| `2026-05-13` | `A` | `internal/source/mappers.go` | `M1` | 拆出 Session/Message/ToolCall DTO mapping 逻辑 | 低 | `go test ./internal/source -count=1` |
+| `2026-05-13` | `A` | `internal/source/service_test.go` | `M1` | 新增 facade 单测覆盖 mapping、分页、空结果与未接线事件流 | 低 | `go test ./internal/source -count=1` |
 
 ## 与 upstream merge 的关系
 

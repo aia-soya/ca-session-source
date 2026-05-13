@@ -26,6 +26,10 @@ type Store struct {
 	customPricing map[string]config.CustomModelRate
 }
 
+// SkipFullSessionHydration reports that postgres list/detail rows
+// already contain the complete session shape available in this store.
+func (s *Store) SkipFullSessionHydration() bool { return true }
+
 // pgSessionCols is the column list for standard PG session
 // queries. PG has no file_path, file_size, file_mtime,
 // file_hash, or local_modified_at columns.
@@ -606,6 +610,46 @@ func (s *Store) GetSessionFull(
 		)
 	}
 	return &sess, nil
+}
+
+// GetSessionsFull returns complete session rows for the given IDs.
+// Missing IDs are omitted from the result map.
+func (s *Store) GetSessionsFull(
+	ctx context.Context, ids []string,
+) (map[string]db.Session, error) {
+	if len(ids) == 0 {
+		return map[string]db.Session{}, nil
+	}
+
+	pb := &paramBuilder{}
+	placeholders := make([]string, len(ids))
+	for i, id := range ids {
+		placeholders[i] = pb.add(id)
+	}
+
+	query := fmt.Sprintf(
+		"SELECT %s FROM sessions WHERE id IN (%s)",
+		pgSessionCols,
+		strings.Join(placeholders, ","),
+	)
+	rows, err := s.pg.QueryContext(ctx, query, pb.args...)
+	if err != nil {
+		return nil, fmt.Errorf("getting session full batch: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[string]db.Session, len(ids))
+	for rows.Next() {
+		sess, err := scanPGSession(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scanning session full batch: %w", err)
+		}
+		result[sess.ID] = sess
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating session full batch: %w", err)
+	}
+	return result, nil
 }
 
 // GetChildSessions returns sessions whose

@@ -138,6 +138,37 @@ func scanSessionRow(rs rowScanner) (Session, error) {
 	return s, err
 }
 
+// scanSessionFullRow scans sessionFullCols into a Session.
+func scanSessionFullRow(rs rowScanner) (Session, error) {
+	var s Session
+	err := rs.Scan(
+		&s.ID, &s.Project, &s.Machine, &s.Agent,
+		&s.FirstMessage, &s.DisplayName, &s.StartedAt, &s.EndedAt,
+		&s.MessageCount, &s.UserMessageCount,
+		&s.ParentSessionID, &s.RelationshipType,
+		&s.TotalOutputTokens, &s.PeakContextTokens,
+		&s.HasTotalOutputTokens, &s.HasPeakContextTokens,
+		&s.IsAutomated,
+		&s.ToolFailureSignalCount, &s.ToolRetryCount,
+		&s.EditChurnCount, &s.ConsecutiveFailureMax,
+		&s.Outcome, &s.OutcomeConfidence,
+		&s.EndedWithRole, &s.FinalFailureStreak,
+		&s.SignalsPendingSince,
+		&s.CompactionCount, &s.MidTaskCompactionCount,
+		&s.ContextPressureMax,
+		&s.HealthScore, &s.HealthGrade,
+		&s.HasToolCalls, &s.HasContextData,
+		&s.DataVersion,
+		&s.Cwd, &s.GitBranch,
+		&s.SourceSessionID, &s.SourceVersion,
+		&s.ParserMalformedLines, &s.IsTruncated,
+		&s.DeletedAt, &s.TerminationStatus, &s.FilePath, &s.FileSize,
+		&s.FileMtime, &s.FileInode, &s.FileDevice,
+		&s.FileHash, &s.LocalModifiedAt, &s.CreatedAt,
+	)
+	return s, err
+}
+
 // Session represents a row in the sessions table.
 type Session struct {
 	ID                   string  `json:"id"`
@@ -689,32 +720,7 @@ func (db *DB) GetSessionFull(
 		id,
 	)
 
-	var s Session
-	err := row.Scan(
-		&s.ID, &s.Project, &s.Machine, &s.Agent,
-		&s.FirstMessage, &s.DisplayName, &s.StartedAt, &s.EndedAt,
-		&s.MessageCount, &s.UserMessageCount,
-		&s.ParentSessionID, &s.RelationshipType,
-		&s.TotalOutputTokens, &s.PeakContextTokens,
-		&s.HasTotalOutputTokens, &s.HasPeakContextTokens,
-		&s.IsAutomated,
-		&s.ToolFailureSignalCount, &s.ToolRetryCount,
-		&s.EditChurnCount, &s.ConsecutiveFailureMax,
-		&s.Outcome, &s.OutcomeConfidence,
-		&s.EndedWithRole, &s.FinalFailureStreak,
-		&s.SignalsPendingSince,
-		&s.CompactionCount, &s.MidTaskCompactionCount,
-		&s.ContextPressureMax,
-		&s.HealthScore, &s.HealthGrade,
-		&s.HasToolCalls, &s.HasContextData,
-		&s.DataVersion,
-		&s.Cwd, &s.GitBranch,
-		&s.SourceSessionID, &s.SourceVersion,
-		&s.ParserMalformedLines, &s.IsTruncated,
-		&s.DeletedAt, &s.TerminationStatus, &s.FilePath, &s.FileSize,
-		&s.FileMtime, &s.FileInode, &s.FileDevice,
-		&s.FileHash, &s.LocalModifiedAt, &s.CreatedAt,
-	)
+	s, err := scanSessionFullRow(row)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -722,6 +728,44 @@ func (db *DB) GetSessionFull(
 		return nil, fmt.Errorf("getting session full %s: %w", id, err)
 	}
 	return &s, nil
+}
+
+// GetSessionsFull returns complete session rows for the given IDs.
+// Missing IDs are omitted from the result map.
+func (db *DB) GetSessionsFull(
+	ctx context.Context, ids []string,
+) (map[string]Session, error) {
+	if len(ids) == 0 {
+		return map[string]Session{}, nil
+	}
+
+	placeholders := make([]string, len(ids))
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+
+	query := "SELECT " + sessionFullCols +
+		" FROM sessions WHERE id IN (" + strings.Join(placeholders, ",") + ")"
+	rows, err := db.getReader().QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("getting session full batch: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[string]Session, len(ids))
+	for rows.Next() {
+		s, err := scanSessionFullRow(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scanning session full batch: %w", err)
+		}
+		result[s.ID] = s
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating session full batch: %w", err)
+	}
+	return result, nil
 }
 
 // IsSessionExcluded returns true if the session ID was
