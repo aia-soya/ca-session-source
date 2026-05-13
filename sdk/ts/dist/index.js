@@ -2,9 +2,16 @@ export { CaSessionSourceClient } from "./client.js";
 export {
   ApiError,
   CaSessionSourceError,
-  EventStreamError,
+  EventStreamError
 } from "./errors.js";
 export {
   SOURCE_EVENT_SCHEMA_VERSION,
-  watchSourceEvents,
+  watchSourceEvents
 } from "./events.js";
+export {
+  SessionMessageBuffer,
+  consumeTranscriptEvent,
+  fetchEarlierSessionTranscriptPage,
+  fetchSessionTranscriptSnapshot,
+  watchSessionTranscript
+} from "./transcript.js";

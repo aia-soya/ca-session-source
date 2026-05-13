@@ -8,6 +8,18 @@ export {
   SOURCE_EVENT_SCHEMA_VERSION,
   watchSourceEvents,
 } from "./events.ts";
+export {
+  SessionMessageBuffer,
+  consumeTranscriptEvent,
+  fetchEarlierSessionTranscriptPage,
+  fetchSessionTranscriptSnapshot,
+  watchSessionTranscript,
+} from "./transcript.ts";
+export type {
+  FetchEarlierSessionTranscriptPageOptions,
+  WatchSessionTranscriptOptions,
+  WatchedSessionTranscript,
+} from "./transcript.ts";
 export type {
   CaSessionSourceClientOptions,
   EventSubscription,
@@ -17,6 +29,11 @@ export type {
   Session,
   SessionFilter,
   SessionPage,
+  SessionTranscriptHistoryPage,
+  SessionTranscriptEventResult,
+  SessionTranscriptMessageSync,
+  SessionTranscriptSnapshot,
+  SessionTranscriptSourceError,
   SourceEvent,
   SourceEventType,
   ToolCall,

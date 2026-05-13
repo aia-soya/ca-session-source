@@ -13,6 +13,7 @@
 - M1 已进入代码阶段，新增 `internal/source/` facade 雏形，并完成基于 `db.Store` 的窄 DTO 读取适配与单测。
 - M2 已进入代码阶段，新增 source event adapter 与 `/api/source/v1/events` SSE 路由，开始把 broadcaster 粗粒度刷新信号收敛为稳定 SourceEvent。
 - M3 已进入代码阶段，新增 `sdk/ts/` TypeScript SDK，开始以 source-oriented client 形式复用现有 `/api/v1` 读接口与 `/api/source/v1/events` 稳定事件流。
+- M4 已完成：已建立 SDK smoke harness，并用真实 HTTP/SSE 服务验证 snapshot、event-driven incremental fetch、重连补洞与历史翻页闭环。
 
 ## 最近完成
 
@@ -54,16 +55,29 @@ source.error
 - 新增 `sdk/ts/src/client.test.ts`，覆盖 `listSessions`、`getMessages`、`getToolCalls`、JSON error handling、`watchEvents` SSE 解析与断线重连。
 - 已验证 `sdk/ts` 的 `npm test`、`npm run build` 与 `npm pack`（使用本地临时 npm cache）均可通过，当前 tarball 名称为 `aia-ca-session-source-client-0.1.0.tgz`。
 - 修正 source event adapter 的快照推进语义：当 `message.appended` 增量补偿失败时，source 层现在会保留该 session 的未完成消费水位，避免瞬时查询失败后永久丢失后续 `message.appended` 事件。
-- 将 `sdk/ts` 包导出切换到提交态 `dist/` JS / `.d.ts` 产物，避免 workspace / Git URL / tarball 消费方直接命中原始 `.ts` 源文件。
+- 将 `sdk/ts` 包导出切换到自动生成的发布产物：runtime 与类型入口统一走 `dist/*`，避免消费方直接命中未构建源码，同时持续压缩手工维护 `dist` 的风险面。
 - 新增 `sdk/ts/test/dist.test.js` 与共享 contract suite，让 `npm test` 同时覆盖 `src` 源实现和实际对外发布的 `dist` 入口，降低 `dist` 与源码漂移后仍被打包发布的风险。
-- 新增 `sdk/ts/test/dist-types.test.js`，对发布态 `dist/*.d.ts` 做声明面 contract 检查，降低 runtime 入口已验证但类型声明漂移后仍被打包发布的风险。
+- 新增 `sdk/ts/test/dist-types.test.js`，对包导出的类型入口与 `src` 公共声明面做 contract 检查，降低 runtime 入口已验证但类型入口漂移后仍被打包发布的风险。
 - 新增 `.gitignore` 中的 `sdk/ts/*.tgz` 忽略规则，并清理误入工作区的 SDK 打包产物，避免本地 `npm pack` 结果再次混入后续提交。
+- 新增 `sdk/ts/examples/smoke/run.js` 与 `sdk/ts/examples/smoke/README.md`，提供直接消费发布态 `dist` SDK 的 smoke harness，用于手工验证 `listSessions -> getSession -> getMessages -> getToolCalls` 和 `session.updated / message.appended -> incremental getMessages` 闭环。
+- 新增 `sdk/ts/examples/smoke/smoke_test.go`，以真实 `server.New(...)` + SQLite + `/api/source/v1/events` + Node SDK 脚本的组合方式覆盖 M4 的消费闭环回归。
+- 扩展 `sdk/ts/examples/smoke`：支持期望最终消息数、重连开关与 reopen 观测，并补充真实服务回归覆盖“断线重连后用 latest ordinal 补齐缺口”以及“`tool_calls` 为空不影响快照主路径”。
+- 继续扩展 `sdk/ts/examples/smoke`：补充 `source.error` surfaced 回归，验证 source adapter 首次 appended backfill 失败后，消费方仍能在后续 refresh 中补齐缺口而不丢消息。
+- 修正 SDK 对空页响应的兼容性：当现有 `/api/v1/sessions/{id}/messages` 返回 `messages: null` 时，`CaSessionSourceClient` 现在会归一为空数组，不再在增量补洞或空结果场景下因 `.map(...)` 崩溃。
+- 将 smoke 中验证过的消费模式沉淀为 SDK helper：新增 transcript helper，用统一的 `SessionMessageBuffer + fetchSessionTranscriptSnapshot + consumeTranscriptEvent` 复用“快照分页 + latest ordinal 增量补洞 + source.error surfaced”逻辑，降低消费方重复实现成本。
+- 在 transcript helper 之上继续补自动 watch orchestration：新增 `watchSessionTranscript(...)`，把 snapshot、`watchEvents(...)` 与 buffer update 收敛成一步式消费入口，并让 smoke harness 直接 dogfood 该入口。
+- 继续补齐大 session 冷启动体验：为 transcript helper 新增 `tailMessageCount` 与 `startOrdinal`，允许消费方只拉最近 N 条消息建立尾部快照，同时保持后续增量补洞语义不变；并新增真实 smoke 回归覆盖该路径。
+- 将“历史窗口继续向前翻页”收敛为更完整的消费 API：新增 `fetchEarlierSessionTranscriptPage(...)` 与 `watched.fetchEarlierPage(...)`，统一处理 `desc` 拉取、升序回放、buffer 去重合并和 `hasMore` 判定，并补充真实 smoke 回归覆盖尾部快照后的历史翻页。
+- 修正 SDK 发布反模式：引入 `unbuild`（`mkdist`）作为 `sdk/ts` 的正式编译发布链路，统一从 `src/*.ts` 生成 `dist/*.js` 与 `dist/*.d.ts`，并通过薄 postbuild rewrite 收敛相对 specifier 到发布态 `.js`；不再手工双写 `dist` 运行时代码或声明文件。
+- 为 SDK 补充独立类型检查：新增 `npm run typecheck`，统一用 `tsc --noEmit` 校验 `src/` 公共源码的类型正确性，让运行时构建和类型诊断职责分离。
+- 修正 transcript buffer 的规模化热点：`SessionMessageBuffer` 现在缓存 `earliestOrdinal / latestOrdinal / messages`，避免在大 session 的快照、历史翻页与增量补洞路径上重复全量扫描和排序。
+- 在 `sdk/ts/package.json`、`sdk/ts/README.md` 中补充 `npm run smoke` 与运行说明，降低后续消费方和仓内联调的启动成本。
 
 ## 当前待办
 
 - 继续完善 M1：评估是否需要在 facade 中补更明确的 `updatedAt` / 空值语义说明，并为后续 source API 预留更稳定的 filter/DTO 约束。
 - 继续完善 M2：评估是否需要进一步缩小初次 connect 时的全量 snapshot 成本，并确认后续 SDK 是否直接消费 `source_event` / PRD 定义的 `camelCase` 协议。
-- 推进 M4：补 SDK smoke harness，验证“事件到达 -> 增量拉取 messages”与“初次快照拉取”在真实服务上的闭环。
+- 持续观察 M4 后续反馈：关注真实 Codex / Claude session 下更大规模分页体验、长时间断线后的补洞成本，以及历史翻页 API 是否还需要补充更明确的窗口/cursor 语义。
 - 评估 M6 之前是否需要新增 `/api/source/v1/sessions*` facade，逐步把 SDK 从 `/api/v1` 底座切到稳定 source REST 合同。
 - 持续维护 `docs/source/fork-patch-map.md`，避免 source 改动扩散到 upstream 核心目录。
 

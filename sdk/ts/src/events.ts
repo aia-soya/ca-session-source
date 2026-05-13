@@ -44,10 +44,12 @@ export function watchSourceEvents(
     try {
       while (!closed) {
         try {
-          const response = await fetchImpl(input.url, {
-            headers: input.headers,
-            signal,
-          });
+          const requestInit: RequestInit = { signal };
+          if (input.headers !== undefined) {
+            requestInit.headers = input.headers;
+          }
+
+          const response = await fetchImpl(input.url, requestInit);
 
           if (!response.ok) {
             throw await toApiError(response);

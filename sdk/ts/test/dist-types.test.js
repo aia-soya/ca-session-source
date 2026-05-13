@@ -5,106 +5,127 @@ import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 
-describe("published declaration files", () => {
-  test("dist/index.d.ts exports the same public surface as src/index.ts", () => {
-    const dist = read("dist/index.d.ts");
+describe("published type entry points", () => {
+  test("package.json points runtime and declaration entrypoints to dist", () => {
+    const pkg = JSON.parse(read("package.json"));
 
-    for (const normalized of [
-      "export { CaSessionSourceClient } from \"./client.js\";",
-      "ApiError,",
-      "CaSessionSourceError,",
-      "EventStreamError,",
-      "SOURCE_EVENT_SCHEMA_VERSION,",
-      "watchSourceEvents,",
-      "CaSessionSourceClientOptions,",
-      "EventSubscription,",
-      "Message,",
-      "MessageOptions,",
-      "MessagePage,",
-      "Session,",
-      "SessionFilter,",
-      "SessionPage,",
-      "SourceEvent,",
-      "SourceEventType,",
-      "ToolCall,",
-      "WatchEventsOptions,",
-    ]) {
-      assert.match(
-        dist,
-        new RegExp(escapeRegExp(normalized)),
-        `missing declaration export snippet: ${normalized}`,
-      );
-    }
+    assert.equal(pkg.main, "./dist/index.js");
+    assert.equal(pkg.types, "./dist/index.d.ts");
+    assert.deepEqual(pkg.files, ["README.md", "dist"]);
+    assert.equal(pkg.scripts.build.includes("unbuild"), true);
+    assert.equal(pkg.scripts.typecheck, "tsc --noEmit");
+
+    assert.deepEqual(pkg.exports["."], {
+      types: "./dist/index.d.ts",
+      import: "./dist/index.js",
+      default: "./dist/index.js",
+    });
+    assert.deepEqual(pkg.exports["./transcript"], {
+      types: "./dist/transcript.d.ts",
+      import: "./dist/transcript.js",
+      default: "./dist/transcript.js",
+    });
+    assert.deepEqual(pkg.exports["./types"], {
+      types: "./dist/types.d.ts",
+      import: "./dist/types.js",
+      default: "./dist/types.js",
+    });
   });
 
-  test("dist/client.d.ts matches the published client contract", () => {
-    const dist = read("dist/client.d.ts");
-
-    for (const snippet of [
-      "constructor(options?: CaSessionSourceClientOptions);",
-      "listSessions(filter?: SessionFilter): Promise<SessionPage>;",
-      "getSession(sessionId: string): Promise<Session>;",
-      "getMessages(",
-      "getToolCalls(sessionId: string): Promise<ToolCall[]>;",
-      "watchEvents(",
-      "options?: WatchEventsOptions,",
-      "): EventSubscription;",
+  test("dist artifacts use published .js specifiers instead of source .ts paths", () => {
+    for (const relativePath of [
+      "dist/index.js",
+      "dist/index.d.ts",
+      "dist/client.d.ts",
+      "dist/transcript.d.ts",
+      "dist/types.d.ts",
     ]) {
-      assert.match(
-        dist,
-        new RegExp(escapeRegExp(snippet)),
-        `missing client declaration snippet: ${snippet}`,
-      );
+      const source = read(relativePath);
+      assert.doesNotMatch(source, /\.ts["']/u, `${relativePath} still references .ts`);
     }
+
+    assert.match(
+      read("dist/index.d.ts"),
+      /export \{ CaSessionSourceClient \} from "\.\/client\.js";/u,
+    );
+    assert.match(
+      read("dist/transcript.d.ts"),
+      /export declare class SessionMessageBuffer/u,
+    );
+    assert.match(
+      read("dist/types.d.ts"),
+      /export interface SessionTranscriptHistoryPage/u,
+    );
   });
 
-  test("dist/types.d.ts preserves key source DTO fields", () => {
-    const dist = read("dist/types.d.ts");
+  test("src/types.ts preserves key source DTO fields", () => {
+    const source = read("src/types.ts");
 
     for (const snippet of [
       "export interface Session {",
-      "gitBranch?: string;",
-      "userMessageCount?: number;",
-      "sourcePath?: string;",
-      "updatedAt?: string;",
+      "gitBranch?: string",
+      "userMessageCount?: number",
+      "sourcePath?: string",
+      "updatedAt?: string",
       "export interface Message {",
       "sessionId: string;",
-      "thinkingText?: string;",
-      "tokenUsage?: unknown;",
-      "sourceUuid?: string;",
-      "toolCalls?: ToolCall[];",
+      "thinkingText?: string",
+      "tokenUsage?: unknown",
+      "sourceUuid?: string",
+      "toolCalls?: ToolCall[]",
       "export interface SourceEvent {",
       "schemaVersion: string;",
-      "messageOrdinal?: number;",
+      "messageOrdinal?: number",
       "export interface WatchEventsOptions {",
-      "onError?: (error: unknown) => void;",
+      "onError?:",
       "export interface CaSessionSourceClientOptions {",
-      "fetch?: typeof fetch;",
-      "sourceEventsPath?: string;",
+      "fetch?: typeof fetch",
+      "sourceEventsPath?: string",
+      "export interface SessionTranscriptSnapshot {",
+      "startOrdinal: number;",
+      "export interface SessionTranscriptHistoryPage {",
+      "beforeOrdinal: number;",
+      "hasMore: boolean;",
     ]) {
       assert.match(
-        dist,
+        source,
         new RegExp(escapeRegExp(snippet)),
-        `missing DTO declaration snippet: ${snippet}`,
+        `missing DTO source snippet: ${snippet}`,
       );
     }
   });
 
-  test("dist/events.d.ts preserves the source event watcher signature", () => {
-    const dist = read("dist/events.d.ts");
+  test("src/transcript.ts preserves transcript helper signatures", () => {
+    const source = read("src/transcript.ts");
 
     for (const snippet of [
-      "export declare const SOURCE_EVENT_SCHEMA_VERSION = \"ca-session.event.v1\";",
-      "export interface WatchSourceEventsInput extends WatchEventsOptions {",
-      "fetchImpl: typeof fetch;",
-      "onEvent: (event: SourceEvent) => void | Promise<void>;",
-      "export declare function watchSourceEvents(",
-      "): EventSubscription;",
+      "export interface FetchSessionTranscriptOptions {",
+      "expectedMessageCount?: number",
+      "tailMessageCount?: number",
+      "export interface ConsumeTranscriptEventOptions {",
+      "export interface FetchEarlierSessionTranscriptPageOptions {",
+      "beforeOrdinal?: number",
+      "export interface WatchSessionTranscriptOptions",
+      "extends FetchSessionTranscriptOptions,",
+      "WatchEventsOptions {",
+      "onEvent?: (event: SourceEvent) => void | Promise<void>;",
+      "onUpdate?: (",
+      "export interface WatchedSessionTranscript {",
+      "fetchEarlierPage(",
+      "readonly closed: Promise<void>;",
+      "export class SessionMessageBuffer {",
+      "get earliestOrdinal(): number {",
+      "get latestOrdinal(): number {",
+      "append(messages: Message[]): Message[] {",
+      "export async function fetchSessionTranscriptSnapshot(",
+      "export async function consumeTranscriptEvent(",
+      "export async function fetchEarlierSessionTranscriptPage(",
+      "export async function watchSessionTranscript(",
     ]) {
       assert.match(
-        dist,
+        source,
         new RegExp(escapeRegExp(snippet)),
-        `missing event declaration snippet: ${snippet}`,
+        `missing transcript source snippet: ${snippet}`,
       );
     }
   });

@@ -67,7 +67,6 @@ export function runClientContractSuite({
         firstMessage: "hello",
         displayName: "Demo",
         startedAt: "2026-05-13T01:00:00Z",
-        endedAt: undefined,
         messageCount: 4,
         userMessageCount: 2,
         sourcePath: "/tmp/session.jsonl",
@@ -153,6 +152,422 @@ export function runClientContractSuite({
           subagentSessionId: "sub-1"
         }]
       });
+    });
+
+    test("getMessages normalizes null pages to an empty array", async () => {
+      const { CaSessionSourceClient } = await loadModule();
+      globalThis.fetch = async () =>
+        jsonResponse({
+          messages: null,
+          count: 0
+        });
+
+      const client = new CaSessionSourceClient();
+      const page = await client.getMessages("sess-empty", {
+        from: 10,
+        direction: "asc"
+      });
+
+      assert.equal(page.count, 0);
+      assert.deepEqual(page.messages, []);
+    });
+
+    test("fetchSessionTranscriptSnapshot paginates and builds transcript state", async () => {
+      const {
+        SessionMessageBuffer,
+        fetchSessionTranscriptSnapshot
+      } = await loadModule();
+
+      const calls = [];
+      const client = {
+        async getSession(sessionId) {
+          assert.equal(sessionId, "sess-1");
+          return { messageCount: 3 };
+        },
+        async getMessages(sessionId, options) {
+          calls.push({ sessionId, options });
+          if (options.from === 0) {
+            return {
+              messages: [
+                { id: 1, sessionId, ordinal: 0, role: "user", content: "a" },
+                { id: 2, sessionId, ordinal: 1, role: "assistant", content: "b" }
+              ],
+              count: 2
+            };
+          }
+          if (options.from === 2) {
+            return {
+              messages: [
+                { id: 3, sessionId, ordinal: 2, role: "assistant", content: "c" }
+              ],
+              count: 1
+            };
+          }
+          return { messages: [], count: 0 };
+        }
+      };
+
+      const snapshot = await fetchSessionTranscriptSnapshot(client, "sess-1", {
+        pageLimit: 2
+      });
+
+      assert.ok(snapshot.buffer instanceof SessionMessageBuffer);
+      assert.equal(snapshot.buffer.sessionId, "sess-1");
+      assert.equal(snapshot.startOrdinal, 0);
+      assert.equal(snapshot.latestOrdinal, 2);
+      assert.deepEqual(snapshot.fetchedPageSizes, [2, 1]);
+      assert.deepEqual(
+        snapshot.messages.map((message) => message.ordinal),
+        [0, 1, 2]
+      );
+      assert.deepEqual(calls, [
+        {
+          sessionId: "sess-1",
+          options: { from: 0, limit: 2, direction: "asc" }
+        },
+        {
+          sessionId: "sess-1",
+          options: { from: 2, limit: 2, direction: "asc" }
+        }
+      ]);
+    });
+
+    test("fetchSessionTranscriptSnapshot can bootstrap from the tail of a large session", async () => {
+      const { fetchSessionTranscriptSnapshot } = await loadModule();
+
+      const calls = [];
+      const client = {
+        async getSession(sessionId) {
+          assert.equal(sessionId, "sess-tail");
+          return { messageCount: 10 };
+        },
+        async getMessages(sessionId, options) {
+          calls.push({ sessionId, options });
+          if (options.from === 7) {
+            return {
+              messages: [
+                { id: 8, sessionId, ordinal: 7, role: "assistant", content: "h" },
+                { id: 9, sessionId, ordinal: 8, role: "assistant", content: "i" }
+              ],
+              count: 2
+            };
+          }
+          if (options.from === 9) {
+            return {
+              messages: [
+                { id: 10, sessionId, ordinal: 9, role: "assistant", content: "j" }
+              ],
+              count: 1
+            };
+          }
+          return { messages: [], count: 0 };
+        }
+      };
+
+      const snapshot = await fetchSessionTranscriptSnapshot(client, "sess-tail", {
+        pageLimit: 2,
+        tailMessageCount: 3
+      });
+
+      assert.equal(snapshot.startOrdinal, 7);
+      assert.equal(snapshot.latestOrdinal, 9);
+      assert.deepEqual(snapshot.fetchedPageSizes, [2, 1]);
+      assert.deepEqual(
+        snapshot.messages.map((message) => message.ordinal),
+        [7, 8, 9]
+      );
+      assert.deepEqual(calls, [
+        {
+          sessionId: "sess-tail",
+          options: { from: 7, limit: 2, direction: "asc" }
+        },
+        {
+          sessionId: "sess-tail",
+          options: { from: 9, limit: 2, direction: "asc" }
+        }
+      ]);
+    });
+
+    test("fetchEarlierSessionTranscriptPage prepends older messages into the buffer", async () => {
+      const {
+        SessionMessageBuffer,
+        fetchEarlierSessionTranscriptPage
+      } = await loadModule();
+
+      const calls = [];
+      const buffer = new SessionMessageBuffer("sess-tail", [
+        { id: 8, sessionId: "sess-tail", ordinal: 7, role: "assistant", content: "h" },
+        { id: 9, sessionId: "sess-tail", ordinal: 8, role: "assistant", content: "i" },
+        { id: 10, sessionId: "sess-tail", ordinal: 9, role: "assistant", content: "j" }
+      ]);
+
+      const page = await fetchEarlierSessionTranscriptPage({
+        async getMessages(sessionId, options) {
+          calls.push({ sessionId, options });
+          return {
+            messages: [
+              { id: 7, sessionId, ordinal: 6, role: "user", content: "g" },
+              { id: 6, sessionId, ordinal: 5, role: "assistant", content: "f" }
+            ],
+            count: 2
+          };
+        }
+      }, buffer, {
+        pageLimit: 2
+      });
+
+      assert.equal(page.kind, "history");
+      assert.equal(page.beforeOrdinal, 7);
+      assert.equal(page.earliestOrdinal, 5);
+      assert.equal(page.latestOrdinal, 9);
+      assert.equal(page.hasMore, true);
+      assert.deepEqual(
+        page.fetchedMessages.map((message) => message.ordinal),
+        [5, 6]
+      );
+      assert.deepEqual(
+        page.appendedMessages.map((message) => message.ordinal),
+        [5, 6]
+      );
+      assert.deepEqual(
+        buffer.messages.map((message) => message.ordinal),
+        [5, 6, 7, 8, 9]
+      );
+      assert.deepEqual(calls, [
+        {
+          sessionId: "sess-tail",
+          options: { from: 6, limit: 2, direction: "desc" }
+        }
+      ]);
+    });
+
+    test("consumeTranscriptEvent surfaces source.error and dedupes incremental appends", async () => {
+      const {
+        SessionMessageBuffer,
+        consumeTranscriptEvent
+      } = await loadModule();
+
+      const buffer = new SessionMessageBuffer("sess-1", [{
+        id: 1,
+        sessionId: "sess-1",
+        ordinal: 0,
+        role: "user",
+        content: "hello"
+      }]);
+
+      const sourceErrorEvent = {
+        schemaVersion: "ca-session.event.v1",
+        type: "source.error",
+        sessionId: "sess-1",
+        error: "boom"
+      };
+
+      const sourceErrorResult = await consumeTranscriptEvent(
+        { getMessages: async () => ({ messages: [], count: 0 }) },
+        buffer,
+        sourceErrorEvent
+      );
+      assert.deepEqual(sourceErrorResult, {
+        kind: "source_error",
+        event: sourceErrorEvent
+      });
+
+      const calls = [];
+      const client = {
+        async getMessages(sessionId, options) {
+          calls.push({ sessionId, options });
+          return {
+            messages: [{
+              id: 2,
+              sessionId,
+              ordinal: 1,
+              role: "assistant",
+              content: "done"
+            }],
+            count: 1
+          };
+        }
+      };
+
+      const updated = await consumeTranscriptEvent(client, buffer, {
+        schemaVersion: "ca-session.event.v1",
+        type: "session.updated",
+        sessionId: "sess-1",
+        messageCount: 2
+      }, {
+        pageLimit: 5
+      });
+
+      assert.equal(updated.kind, "messages");
+      assert.equal(updated.trigger, "session.updated");
+      assert.equal(updated.from, 1);
+      assert.deepEqual(
+        updated.appendedMessages.map((message) => message.ordinal),
+        [1]
+      );
+      assert.equal(updated.latestOrdinal, 1);
+
+      const appended = await consumeTranscriptEvent(client, buffer, {
+        schemaVersion: "ca-session.event.v1",
+        type: "message.appended",
+        sessionId: "sess-1",
+        messageOrdinal: 1,
+        messageCount: 2
+      });
+
+      assert.equal(appended.kind, "messages");
+      assert.equal(appended.trigger, "message.appended");
+      assert.equal(appended.from, 1);
+      assert.deepEqual(appended.fetchedMessages.map((message) => message.ordinal), [1]);
+      assert.deepEqual(appended.appendedMessages, []);
+      assert.deepEqual(
+        buffer.messages.map((message) => message.ordinal),
+        [0, 1]
+      );
+      assert.deepEqual(calls, [
+        {
+          sessionId: "sess-1",
+          options: { from: 1, limit: 5, direction: "asc" }
+        },
+        {
+          sessionId: "sess-1",
+          options: { from: 1, limit: 100, direction: "asc" }
+        }
+      ]);
+    });
+
+    test("watchSessionTranscript orchestrates snapshot, watch, and buffer updates", async () => {
+      const {
+        SessionMessageBuffer,
+        watchSessionTranscript
+      } = await loadModule();
+
+      const calls = [];
+      const seenEvents = [];
+      const seenUpdates = [];
+      let watchHandler;
+      let closeCalls = 0;
+      let resolveClosed;
+      const closed = new Promise((resolve) => {
+        resolveClosed = resolve;
+      });
+
+      const client = {
+        async getSession(sessionId) {
+          assert.equal(sessionId, "sess-1");
+          return { messageCount: 1 };
+        },
+        async getMessages(sessionId, options) {
+          calls.push({ sessionId, options });
+          if (options.from === 0) {
+            return {
+              messages: [{
+                id: 1,
+                sessionId,
+                ordinal: 0,
+                role: "user",
+                content: "hello"
+              }],
+              count: 1
+            };
+          }
+          if (options.from === 1) {
+            return {
+              messages: [{
+                id: 2,
+                sessionId,
+                ordinal: 1,
+                role: "assistant",
+                content: "world"
+              }],
+              count: 1
+            };
+          }
+          return { messages: [], count: 0 };
+        },
+        watchEvents(handler, options) {
+          watchHandler = handler;
+          assert.equal(options.reconnect, true);
+          assert.equal(options.retryDelayMs, 5);
+          return {
+            close() {
+              closeCalls += 1;
+              resolveClosed();
+            },
+            closed
+          };
+        }
+      };
+
+      const watched = await watchSessionTranscript(client, "sess-1", {
+        pageLimit: 2,
+        reconnect: true,
+        retryDelayMs: 5,
+        onEvent(event) {
+          seenEvents.push(event.type);
+        },
+        onUpdate(update) {
+          seenUpdates.push(update);
+        }
+      });
+
+      assert.ok(watched.buffer instanceof SessionMessageBuffer);
+      assert.equal(watched.snapshot.buffer, watched.buffer);
+      assert.equal(watched.buffer.earliestOrdinal, 0);
+      assert.deepEqual(
+        watched.snapshot.messages.map((message) => message.ordinal),
+        [0]
+      );
+
+      const historyPage = await watched.fetchEarlierPage({
+        pageLimit: 2,
+        beforeOrdinal: 0
+      });
+      assert.equal(historyPage.kind, "history");
+      assert.equal(historyPage.hasMore, false);
+      assert.deepEqual(historyPage.fetchedMessages, []);
+
+      await watchHandler({
+        schemaVersion: "ca-session.event.v1",
+        type: "session.updated",
+        sessionId: "sess-1",
+        messageCount: 2
+      });
+      await watchHandler({
+        schemaVersion: "ca-session.event.v1",
+        type: "source.error",
+        sessionId: "sess-1",
+        error: "boom"
+      });
+
+      assert.deepEqual(seenEvents, ["session.updated", "source.error"]);
+      assert.equal(seenUpdates.length, 2);
+      assert.equal(seenUpdates[0].kind, "messages");
+      assert.equal(seenUpdates[0].trigger, "session.updated");
+      assert.deepEqual(
+        seenUpdates[0].appendedMessages.map((message) => message.ordinal),
+        [1]
+      );
+      assert.equal(seenUpdates[1].kind, "source_error");
+      assert.equal(seenUpdates[1].event.error, "boom");
+      assert.deepEqual(
+        watched.buffer.messages.map((message) => message.ordinal),
+        [0, 1]
+      );
+      assert.deepEqual(calls, [
+        {
+          sessionId: "sess-1",
+          options: { from: 0, limit: 2, direction: "asc" }
+        },
+        {
+          sessionId: "sess-1",
+          options: { from: 1, limit: 2, direction: "asc" }
+        }
+      ]);
+
+      watched.close();
+      await watched.closed;
+      assert.equal(closeCalls, 1);
     });
 
     test("getToolCalls maps flattened session tool calls", async () => {

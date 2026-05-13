@@ -80,27 +80,27 @@ interface RawSessionToolCall {
 }
 
 interface RawSessionPage {
-  sessions: RawSession[];
+  sessions?: RawSession[] | null;
   next_cursor?: string;
   total: number;
 }
 
 interface RawMessagePage {
-  messages: RawMessage[];
+  messages?: RawMessage[] | null;
   count: number;
 }
 
 interface RawToolCallPage {
-  tool_calls: RawSessionToolCall[];
+  tool_calls?: RawSessionToolCall[] | null;
 }
 
 export class CaSessionSourceClient {
   private readonly baseUrl: string;
   private readonly restBaseUrl: string;
   private readonly sourceEventsUrl: string;
-  private readonly authToken?: string;
+  private readonly authToken: string | undefined;
   private readonly fetchImpl: typeof fetch;
-  private readonly headers?: HeadersInit;
+  private readonly headers: HeadersInit | undefined;
 
   constructor(options: CaSessionSourceClientOptions = {}) {
     this.baseUrl = ensureTrailingSlash(options.baseUrl ?? DEFAULT_BASE_URL);
@@ -141,11 +141,11 @@ export class CaSessionSourceClient {
       limit: filter.limit,
     });
 
-    return {
-      sessions: raw.sessions.map(mapSession),
+    return omitUndefined({
+      sessions: normalizeArray(raw.sessions).map(mapSession),
       nextCursor: raw.next_cursor,
       total: raw.total,
-    };
+    });
   }
 
   async getSession(sessionId: string): Promise<Session> {
@@ -166,7 +166,7 @@ export class CaSessionSourceClient {
     );
 
     return {
-      messages: raw.messages.map(mapMessage),
+      messages: normalizeArray(raw.messages).map(mapMessage),
       count: raw.count,
     };
   }
@@ -175,7 +175,7 @@ export class CaSessionSourceClient {
     const raw = await this.fetchJSON<RawToolCallPage>(
       `sessions/${sessionId}/tool-calls`,
     );
-    return raw.tool_calls.map(mapSessionToolCall);
+    return normalizeArray(raw.tool_calls).map(mapSessionToolCall);
   }
 
   watchEvents(
@@ -261,7 +261,7 @@ function extractErrorMessage(
 }
 
 function mapSession(raw: RawSession): Session {
-  return {
+  return omitUndefined({
     id: raw.id,
     agent: raw.agent,
     project: raw.project,
@@ -280,11 +280,11 @@ function mapSession(raw: RawSession): Session {
       nullableToUndefined(raw.ended_at) ??
       nullableToUndefined(raw.started_at) ??
       emptyToUndefined(raw.created_at),
-  };
+  });
 }
 
 function mapMessage(raw: RawMessage): Message {
-  return {
+  return omitUndefined({
     id: raw.id,
     sessionId: raw.session_id,
     ordinal: raw.ordinal,
@@ -300,11 +300,11 @@ function mapMessage(raw: RawMessage): Message {
     sourceType: emptyToUndefined(raw.source_type),
     sourceSubtype: emptyToUndefined(raw.source_subtype),
     toolCalls: raw.tool_calls?.map(mapEmbeddedToolCall),
-  };
+  });
 }
 
 function mapEmbeddedToolCall(raw: RawEmbeddedToolCall): ToolCall {
-  return {
+  return omitUndefined({
     toolName: raw.tool_name,
     category: emptyToUndefined(raw.category),
     toolUseId: emptyToUndefined(raw.tool_use_id),
@@ -313,11 +313,11 @@ function mapEmbeddedToolCall(raw: RawEmbeddedToolCall): ToolCall {
     resultContent: emptyToUndefined(raw.result_content),
     resultContentLength: raw.result_content_length,
     subagentSessionId: emptyToUndefined(raw.subagent_session_id),
-  };
+  });
 }
 
 function mapSessionToolCall(raw: RawSessionToolCall): ToolCall {
-  return {
+  return omitUndefined({
     toolName: raw.tool_name,
     category: emptyToUndefined(raw.category),
     toolUseId: emptyToUndefined(raw.tool_use_id),
@@ -327,7 +327,7 @@ function mapSessionToolCall(raw: RawSessionToolCall): ToolCall {
     ordinal: raw.ordinal,
     timestamp: emptyToUndefined(raw.timestamp),
     resultContentLength: raw.result_length,
-  };
+  });
 }
 
 function appendQuery(url: URL, query?: Record<string, QueryValue>): void {
@@ -371,4 +371,14 @@ function emptyToUndefined(value?: string): string | undefined {
     return undefined;
   }
   return value;
+}
+
+function normalizeArray<T>(value?: T[] | null): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function omitUndefined<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined),
+  ) as T;
 }

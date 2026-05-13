@@ -71,6 +71,17 @@ source.error
 - 若底层事件粒度不足，可在 facade 层补齐 `message.appended` 语义，但不要直接扭曲底层核心模型。
 - 与 source 无关的 analytics、pins、stars、insights 等能力，不要被复制进 source 层。
 
+## 审查规则
+
+进行代码审查、重构建议、冗长度评估或反模式排查时，默认只审查 fork patch 面，排除 upstream 代码。
+
+- 审查范围优先限定在 [docs/source/fork-patch-map.md](./docs/source/fork-patch-map.md) 中登记的新增/薄改路径，以及当前分支相对 `upstream/main` 的实际补丁文件。
+- 不得把 upstream 原生的大文件、既有复杂度或历史设计债当作本次任务的主要审查结论，除非用户明确要求审查 upstream。
+- 若某个问题横跨 fork patch 与 upstream 集成点，需明确区分：
+  1. fork 新增问题
+  2. upstream 既有约束
+  3. 两者交界处的集成风险
+
 ## 开发后规则
 
 编辑代码之后，必须：

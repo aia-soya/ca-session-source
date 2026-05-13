@@ -8,30 +8,30 @@ export interface Session {
   id: string;
   agent: string;
   project: string;
-  machine?: string;
-  cwd?: string;
-  gitBranch?: string;
-  firstMessage?: string;
-  displayName?: string;
-  startedAt?: string;
-  endedAt?: string;
+  machine?: string | undefined;
+  cwd?: string | undefined;
+  gitBranch?: string | undefined;
+  firstMessage?: string | undefined;
+  displayName?: string | undefined;
+  startedAt?: string | undefined;
+  endedAt?: string | undefined;
   messageCount: number;
-  userMessageCount?: number;
-  sourcePath?: string;
-  updatedAt?: string;
+  userMessageCount?: number | undefined;
+  sourcePath?: string | undefined;
+  updatedAt?: string | undefined;
 }
 
 export interface ToolCall {
   toolName: string;
-  category?: string;
-  toolUseId?: string;
-  inputJson?: string;
-  skillName?: string;
-  resultContent?: string;
-  resultContentLength?: number;
-  subagentSessionId?: string;
-  ordinal?: number;
-  timestamp?: string;
+  category?: string | undefined;
+  toolUseId?: string | undefined;
+  inputJson?: string | undefined;
+  skillName?: string | undefined;
+  resultContent?: string | undefined;
+  resultContentLength?: number | undefined;
+  subagentSessionId?: string | undefined;
+  ordinal?: number | undefined;
+  timestamp?: string | undefined;
 }
 
 export interface Message {
@@ -40,33 +40,33 @@ export interface Message {
   ordinal: number;
   role: string;
   content: string;
-  thinkingText?: string;
-  timestamp?: string;
-  hasThinking?: boolean;
-  hasToolUse?: boolean;
-  model?: string;
-  tokenUsage?: unknown;
-  sourceUuid?: string;
-  sourceType?: string;
-  sourceSubtype?: string;
-  toolCalls?: ToolCall[];
+  thinkingText?: string | undefined;
+  timestamp?: string | undefined;
+  hasThinking?: boolean | undefined;
+  hasToolUse?: boolean | undefined;
+  model?: string | undefined;
+  tokenUsage?: unknown | undefined;
+  sourceUuid?: string | undefined;
+  sourceType?: string | undefined;
+  sourceSubtype?: string | undefined;
+  toolCalls?: ToolCall[] | undefined;
 }
 
 export interface SourceEvent {
   schemaVersion: string;
   type: SourceEventType;
-  sessionId?: string;
-  agent?: string;
-  messageCount?: number;
-  messageOrdinal?: number;
-  role?: string;
-  sourcePath?: string;
-  error?: string;
+  sessionId?: string | undefined;
+  agent?: string | undefined;
+  messageCount?: number | undefined;
+  messageOrdinal?: number | undefined;
+  role?: string | undefined;
+  sourcePath?: string | undefined;
+  error?: string | undefined;
 }
 
 export interface SessionPage {
   sessions: Session[];
-  nextCursor?: string;
+  nextCursor?: string | undefined;
   total: number;
 }
 
@@ -76,42 +76,42 @@ export interface MessagePage {
 }
 
 export interface SessionFilter {
-  project?: string;
-  excludeProject?: string;
-  machine?: string;
-  agent?: string;
-  date?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  activeSince?: string;
-  minMessages?: number;
-  maxMessages?: number;
-  minUserMessages?: number;
-  includeOneShot?: boolean;
-  includeAutomated?: boolean;
-  includeChildren?: boolean;
-  outcome?: string;
-  healthGrade?: string;
-  termination?: string;
-  minToolFailures?: number;
-  cursor?: string;
-  limit?: number;
+  project?: string | undefined;
+  excludeProject?: string | undefined;
+  machine?: string | undefined;
+  agent?: string | undefined;
+  date?: string | undefined;
+  dateFrom?: string | undefined;
+  dateTo?: string | undefined;
+  activeSince?: string | undefined;
+  minMessages?: number | undefined;
+  maxMessages?: number | undefined;
+  minUserMessages?: number | undefined;
+  includeOneShot?: boolean | undefined;
+  includeAutomated?: boolean | undefined;
+  includeChildren?: boolean | undefined;
+  outcome?: string | undefined;
+  healthGrade?: string | undefined;
+  termination?: string | undefined;
+  minToolFailures?: number | undefined;
+  cursor?: string | undefined;
+  limit?: number | undefined;
 }
 
 export interface MessageOptions {
-  from?: number;
-  limit?: number;
-  direction?: "asc" | "desc";
+  from?: number | undefined;
+  limit?: number | undefined;
+  direction?: "asc" | "desc" | undefined;
 }
 
 export interface WatchEventsOptions {
-  signal?: AbortSignal;
-  reconnect?: boolean;
-  retryDelayMs?: number;
-  maxRetryDelayMs?: number;
-  backoffMultiplier?: number;
-  onOpen?: () => void;
-  onError?: (error: unknown) => void;
+  signal?: AbortSignal | undefined;
+  reconnect?: boolean | undefined;
+  retryDelayMs?: number | undefined;
+  maxRetryDelayMs?: number | undefined;
+  backoffMultiplier?: number | undefined;
+  onOpen?: (() => void) | undefined;
+  onError?: ((error: unknown) => void) | undefined;
 }
 
 export interface EventSubscription {
@@ -120,10 +120,46 @@ export interface EventSubscription {
 }
 
 export interface CaSessionSourceClientOptions {
-  baseUrl?: string;
-  authToken?: string;
-  fetch?: typeof fetch;
-  headers?: HeadersInit;
-  restBasePath?: string;
-  sourceEventsPath?: string;
+  baseUrl?: string | undefined;
+  authToken?: string | undefined;
+  fetch?: typeof fetch | undefined;
+  headers?: HeadersInit | undefined;
+  restBasePath?: string | undefined;
+  sourceEventsPath?: string | undefined;
 }
+
+export interface SessionTranscriptSnapshot {
+  startOrdinal: number;
+  messages: Message[];
+  fetchedPageSizes: number[];
+  latestOrdinal: number;
+}
+
+export interface SessionTranscriptHistoryPage {
+  kind: "history";
+  beforeOrdinal: number;
+  fetchedMessages: Message[];
+  appendedMessages: Message[];
+  earliestOrdinal: number;
+  latestOrdinal: number;
+  hasMore: boolean;
+}
+
+export interface SessionTranscriptMessageSync {
+  kind: "messages";
+  trigger: "session.updated" | "message.appended";
+  from: number;
+  fetchedMessages: Message[];
+  appendedMessages: Message[];
+  latestOrdinal: number;
+}
+
+export interface SessionTranscriptSourceError {
+  kind: "source_error";
+  event: SourceEvent;
+}
+
+export type SessionTranscriptEventResult =
+  | SessionTranscriptMessageSync
+  | SessionTranscriptSourceError
+  | null;

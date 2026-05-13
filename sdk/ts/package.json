@@ -29,6 +29,11 @@
       "import": "./dist/events.js",
       "default": "./dist/events.js"
     },
+    "./transcript": {
+      "types": "./dist/transcript.d.ts",
+      "import": "./dist/transcript.js",
+      "default": "./dist/transcript.js"
+    },
     "./types": {
       "types": "./dist/types.d.ts",
       "import": "./dist/types.js",
@@ -41,7 +46,14 @@
     "dist"
   ],
   "scripts": {
-    "build": "node --eval \"await import('./dist/index.js')\"",
-    "test": "node --experimental-strip-types --test src/**/*.test.ts test/**/*.test.js"
+    "build": "unbuild && node ./scripts/postbuild-fix-extensions.mjs && node --eval \"await import('./dist/index.js')\"",
+    "prepack": "npm run build && npm run typecheck",
+    "smoke": "node examples/smoke/run.js",
+    "test": "npm run build && npm run typecheck && node --experimental-strip-types --test src/**/*.test.ts test/**/*.test.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "unbuild": "^3.6.1"
   }
 }

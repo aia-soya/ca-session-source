@@ -11,7 +11,7 @@ SDK 对外暴露 source-oriented 的 camelCase 类型，消费方不需要直接
 
 ## 安装方式
 
-当前包会发布仓内维护的 `dist/` 产物，适合被 workspace、Git URL 或 tarball 直接引用。
+当前包会发布由 `unbuild` 自动生成的 `dist/` 运行时代码与 `.d.ts` 声明入口，适合被 workspace、Git URL 或 tarball 直接引用。
 
 ## 用法
 
@@ -40,7 +40,94 @@ sub.close();
 await sub.closed;
 ```
 
+如果消费方想直接拿到“一步式 transcript watch”，可以优先使用 `watchSessionTranscript(...)`：
+
+```ts
+import {
+  CaSessionSourceClient,
+  watchSessionTranscript
+} from "@aia/ca-session-source-client";
+
+const client = new CaSessionSourceClient();
+const watched = await watchSessionTranscript(client, "sess-1", {
+  pageLimit: 100,
+  tailMessageCount: 200,
+  onUpdate(update) {
+    if (update.kind !== "messages") {
+      console.error(update.event.error);
+      return;
+    }
+
+    console.log(update.appendedMessages);
+  }
+});
+
+console.log(watched.snapshot.messages);
+console.log(watched.snapshot.startOrdinal);
+
+const olderPage = await watched.fetchEarlierPage({ pageLimit: 100 });
+console.log(olderPage.fetchedMessages);
+console.log(olderPage.hasMore);
+
+// 稍后停止订阅
+watched.close();
+await watched.closed;
+```
+
+如果消费方想自己控制 watch 生命周期，也可以复用更底层的 transcript helper：
+
+```ts
+import {
+  CaSessionSourceClient,
+  consumeTranscriptEvent,
+  fetchEarlierSessionTranscriptPage,
+  fetchSessionTranscriptSnapshot
+} from "@aia/ca-session-source-client";
+
+const client = new CaSessionSourceClient();
+const session = await client.getSession("sess-1");
+const snapshot = await fetchSessionTranscriptSnapshot(client, session.id, {
+  expectedMessageCount: session.messageCount,
+  tailMessageCount: 200,
+  pageLimit: 100
+});
+
+const olderPage = await fetchEarlierSessionTranscriptPage(client, snapshot.buffer, {
+  pageLimit: 100
+});
+
+const sub = client.watchEvents(async (event) => {
+  const update = await consumeTranscriptEvent(client, snapshot.buffer, event, {
+    pageLimit: 100
+  });
+
+  if (!update || update.kind !== "messages") {
+    return;
+  }
+
+  console.log(update.appendedMessages);
+});
+```
+
 ## 脚本
 
 - `npm test`
 - `npm run build`
+- `npm run typecheck`
+- `npm run smoke`
+
+`npm run smoke` 会执行 [`sdk/ts/examples/smoke/run.js`](./examples/smoke/run.js)。
+它面向一个真实运行中的本地服务，验证：
+
+- 冷启动快照：`listSessions -> getSession -> getMessages -> getToolCalls`
+- 事件驱动增量：`session.updated / message.appended -> getMessages(from=...)`
+
+运行前需要先设置至少两个环境变量：
+
+```bash
+export CASS_BASE_URL=http://127.0.0.1:8080
+export CASS_SESSION_ID=<your-session-id>
+npm run smoke
+```
+
+更完整的说明见 [`sdk/ts/examples/smoke/README.md`](./examples/smoke/README.md)。
