@@ -50,7 +50,7 @@ describe("published type entry points", () => {
     );
     assert.match(
       read("dist/transcript.d.ts"),
-      /export declare class SessionMessageBuffer/u,
+      /SessionMessageBuffer,\s*\};|SessionMessageBuffer,\s*\n/u,
     );
     assert.match(
       read("dist/types.d.ts"),
@@ -73,6 +73,8 @@ describe("published type entry points", () => {
       "tokenUsage?: unknown",
       "sourceUuid?: string",
       "toolCalls?: ToolCall[]",
+      "export interface MessageAnchor {",
+      "messageOrdinal: number;",
       "export interface SourceEvent {",
       "schemaVersion: string;",
       "messageOrdinal?: number",
@@ -83,8 +85,10 @@ describe("published type entry points", () => {
       "sourceEventsPath?: string",
       "export interface SessionTranscriptSnapshot {",
       "startOrdinal: number;",
+      "latestAnchor?: MessageAnchor",
       "export interface SessionTranscriptHistoryPage {",
       "beforeOrdinal: number;",
+      "latestAnchor?: MessageAnchor",
       "hasMore: boolean;",
     ]) {
       assert.match(
@@ -95,8 +99,50 @@ describe("published type entry points", () => {
     }
   });
 
-  test("src/transcript.ts preserves transcript helper signatures", () => {
-    const source = read("src/transcript.ts");
+  test("src/transcript modules preserve focused helper boundaries", () => {
+    const transcriptSource = read("src/transcript.ts");
+    const bufferSource = read("src/transcript-buffer.ts");
+    const syncSource = read("src/transcript-sync.ts");
+
+    for (const snippet of [
+      'export {',
+      "consumeTranscriptEvent,",
+      "fetchEarlierSessionTranscriptPage,",
+      "fetchSessionTranscriptSnapshot,",
+      "SessionMessageBuffer,",
+      "export type {",
+      "FetchSessionTranscriptOptions,",
+      "ConsumeTranscriptEventOptions,",
+      "FetchEarlierSessionTranscriptPageOptions,",
+      "export interface WatchSessionTranscriptOptions",
+      "extends FetchSessionTranscriptOptions,",
+      "WatchEventsOptions {",
+      "export interface WatchedSessionTranscript {",
+      "fetchEarlierPage(",
+      "readonly closed: Promise<void>;",
+      "export async function watchSessionTranscript(",
+    ]) {
+      assert.match(
+        transcriptSource,
+        new RegExp(escapeRegExp(snippet)),
+        `missing transcript facade snippet: ${snippet}`,
+      );
+    }
+
+    for (const snippet of [
+      "export class SessionMessageBuffer {",
+      "get earliestOrdinal(): number {",
+      "get latestOrdinal(): number {",
+      "get latestAnchor(): MessageAnchor | undefined {",
+      "append(messages: Message[]): Message[] {",
+      "export function createMessageAnchor(message: Message): MessageAnchor {",
+    ]) {
+      assert.match(
+        bufferSource,
+        new RegExp(escapeRegExp(snippet)),
+        `missing transcript buffer snippet: ${snippet}`,
+      );
+    }
 
     for (const snippet of [
       "export interface FetchSessionTranscriptOptions {",
@@ -105,27 +151,66 @@ describe("published type entry points", () => {
       "export interface ConsumeTranscriptEventOptions {",
       "export interface FetchEarlierSessionTranscriptPageOptions {",
       "beforeOrdinal?: number",
-      "export interface WatchSessionTranscriptOptions",
-      "extends FetchSessionTranscriptOptions,",
-      "WatchEventsOptions {",
-      "onEvent?: (event: SourceEvent) => void | Promise<void>;",
-      "onUpdate?: (",
-      "export interface WatchedSessionTranscript {",
-      "fetchEarlierPage(",
-      "readonly closed: Promise<void>;",
-      "export class SessionMessageBuffer {",
-      "get earliestOrdinal(): number {",
-      "get latestOrdinal(): number {",
-      "append(messages: Message[]): Message[] {",
       "export async function fetchSessionTranscriptSnapshot(",
       "export async function consumeTranscriptEvent(",
       "export async function fetchEarlierSessionTranscriptPage(",
-      "export async function watchSessionTranscript(",
     ]) {
       assert.match(
-        source,
+        syncSource,
         new RegExp(escapeRegExp(snippet)),
-        `missing transcript source snippet: ${snippet}`,
+        `missing transcript sync snippet: ${snippet}`,
+      );
+    }
+  });
+
+  test("src/client modules preserve mapper and transport seams", () => {
+    const clientSource = read("src/client.ts");
+    const mapperSource = read("src/client-mappers.ts");
+    const transportSource = read("src/client-transport.ts");
+
+    for (const snippet of [
+      'from "./client-mappers.ts";',
+      'from "./client-transport.ts";',
+      "export class CaSessionSourceClient {",
+      "async listSessions(filter: SessionFilter = {}): Promise<SessionPage> {",
+      "async getSession(sessionId: string): Promise<Session> {",
+      "async getMessages(",
+      "): Promise<MessagePage> {",
+      "async getToolCalls(sessionId: string): Promise<ToolCall[]> {",
+      "private async fetchJSON<T>(",
+    ]) {
+      assert.match(
+        clientSource,
+        new RegExp(escapeRegExp(snippet)),
+        `missing client facade snippet: ${snippet}`,
+      );
+    }
+
+    for (const snippet of [
+      "export interface RawSession {",
+      "export interface RawMessage {",
+      "export interface RawToolCallPage {",
+      "export function mapSessionPage(raw: RawSessionPage): SessionPage {",
+      "export function mapMessagePage(raw: RawMessagePage): MessagePage {",
+      "export function mapToolCallPage(raw: RawToolCallPage): ToolCall[] {",
+    ]) {
+      assert.match(
+        mapperSource,
+        new RegExp(escapeRegExp(snippet)),
+        `missing client mapper snippet: ${snippet}`,
+      );
+    }
+
+    for (const snippet of [
+      "export async function fetchJSON<T>(",
+      "export function appendQuery(",
+      "export function joinBaseUrl(baseUrl: string, path: string): string {",
+      "export function joinResourceUrl(baseUrl: string, path: string): string {",
+    ]) {
+      assert.match(
+        transportSource,
+        new RegExp(escapeRegExp(snippet)),
+        `missing client transport snippet: ${snippet}`,
       );
     }
   });

@@ -154,6 +154,41 @@ export function runClientContractSuite({
       });
     });
 
+    test("getMessages keeps source anchor fields optional when upstream omits them", async () => {
+      const { CaSessionSourceClient, createMessageAnchor } = await loadModule();
+      globalThis.fetch = async () =>
+        jsonResponse({
+          messages: [{
+            id: 2,
+            session_id: "sess-2",
+            ordinal: 4,
+            role: "assistant",
+            content: "done",
+            timestamp: "2026-05-13T03:10:00Z",
+            source_uuid: "",
+            source_type: "",
+            source_subtype: ""
+          }],
+          count: 1
+        });
+
+      const client = new CaSessionSourceClient();
+      const page = await client.getMessages("sess-2");
+
+      assert.deepEqual(page.messages[0], {
+        id: 2,
+        sessionId: "sess-2",
+        ordinal: 4,
+        role: "assistant",
+        content: "done",
+        timestamp: "2026-05-13T03:10:00Z"
+      });
+      assert.deepEqual(createMessageAnchor(page.messages[0]), {
+        sessionId: "sess-2",
+        messageOrdinal: 4
+      });
+    });
+
     test("getMessages normalizes null pages to an empty array", async () => {
       const { CaSessionSourceClient } = await loadModule();
       globalThis.fetch = async () =>
@@ -215,6 +250,10 @@ export function runClientContractSuite({
       assert.equal(snapshot.buffer.sessionId, "sess-1");
       assert.equal(snapshot.startOrdinal, 0);
       assert.equal(snapshot.latestOrdinal, 2);
+      assert.deepEqual(snapshot.latestAnchor, {
+        sessionId: "sess-1",
+        messageOrdinal: 2
+      });
       assert.deepEqual(snapshot.fetchedPageSizes, [2, 1]);
       assert.deepEqual(
         snapshot.messages.map((message) => message.ordinal),
@@ -401,6 +440,10 @@ export function runClientContractSuite({
       assert.equal(updated.kind, "messages");
       assert.equal(updated.trigger, "session.updated");
       assert.equal(updated.from, 1);
+      assert.deepEqual(updated.latestAnchor, {
+        sessionId: "sess-1",
+        messageOrdinal: 1
+      });
       assert.deepEqual(
         updated.appendedMessages.map((message) => message.ordinal),
         [1]
@@ -418,6 +461,10 @@ export function runClientContractSuite({
       assert.equal(appended.kind, "messages");
       assert.equal(appended.trigger, "message.appended");
       assert.equal(appended.from, 1);
+      assert.deepEqual(appended.latestAnchor, {
+        sessionId: "sess-1",
+        messageOrdinal: 1
+      });
       assert.deepEqual(appended.fetchedMessages.map((message) => message.ordinal), [1]);
       assert.deepEqual(appended.appendedMessages, []);
       assert.deepEqual(
@@ -434,6 +481,34 @@ export function runClientContractSuite({
           options: { from: 1, limit: 100, direction: "asc" }
         }
       ]);
+    });
+
+    test("consumeTranscriptEvent ignores unknown event types", async () => {
+      const { SessionMessageBuffer, consumeTranscriptEvent } = await loadModule();
+
+      const buffer = new SessionMessageBuffer("sess-1", [{
+        id: 1,
+        sessionId: "sess-1",
+        ordinal: 0,
+        role: "user",
+        content: "hello"
+      }]);
+
+      const result = await consumeTranscriptEvent(
+        { getMessages: async () => ({ messages: [], count: 0 }) },
+        buffer,
+        {
+          schemaVersion: "ca-session.event.v1",
+          type: "session.deleted",
+          sessionId: "sess-1"
+        }
+      );
+
+      assert.equal(result, null);
+      assert.deepEqual(buffer.latestAnchor, {
+        sessionId: "sess-1",
+        messageOrdinal: 0
+      });
     });
 
     test("watchSessionTranscript orchestrates snapshot, watch, and buffer updates", async () => {
@@ -525,6 +600,10 @@ export function runClientContractSuite({
       });
       assert.equal(historyPage.kind, "history");
       assert.equal(historyPage.hasMore, false);
+      assert.deepEqual(historyPage.latestAnchor, {
+        sessionId: "sess-1",
+        messageOrdinal: 0
+      });
       assert.deepEqual(historyPage.fetchedMessages, []);
 
       await watchHandler({

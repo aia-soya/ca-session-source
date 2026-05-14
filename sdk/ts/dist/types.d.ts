@@ -44,6 +44,13 @@ export interface Message {
     sourceSubtype?: string | undefined;
     toolCalls?: ToolCall[] | undefined;
 }
+export interface MessageAnchor {
+    sessionId: string;
+    messageOrdinal: number;
+    sourceUuid?: string | undefined;
+    sourceType?: string | undefined;
+    sourceSubtype?: string | undefined;
+}
 export interface SourceEvent {
     schemaVersion: string;
     type: SourceEventType;
@@ -117,6 +124,7 @@ export interface SessionTranscriptSnapshot {
     messages: Message[];
     fetchedPageSizes: number[];
     latestOrdinal: number;
+    latestAnchor?: MessageAnchor | undefined;
 }
 export interface SessionTranscriptHistoryPage {
     kind: "history";
@@ -125,6 +133,7 @@ export interface SessionTranscriptHistoryPage {
     appendedMessages: Message[];
     earliestOrdinal: number;
     latestOrdinal: number;
+    latestAnchor?: MessageAnchor | undefined;
     hasMore: boolean;
 }
 export interface SessionTranscriptMessageSync {
@@ -134,6 +143,7 @@ export interface SessionTranscriptMessageSync {
     fetchedMessages: Message[];
     appendedMessages: Message[];
     latestOrdinal: number;
+    latestAnchor?: MessageAnchor | undefined;
 }
 export interface SessionTranscriptSourceError {
     kind: "source_error";

@@ -2,6 +2,11 @@
 
 本文定义 `ca-session-source` 面向消费方暴露的稳定 Source Event 契约。
 
+配套策略文档：
+
+- [message-anchor.md](./message-anchor.md)
+- [incremental-consumption.md](./incremental-consumption.md)
+
 ## 目标
 
 - 对外只暴露 source 领域事件，不直接泄漏 AgentsView 内部 `data_changed` / `scope` 语义。
@@ -132,6 +137,12 @@ sessionId + messageOrdinal
 ```
 
 这与当前 PRD/计划中的 MVP 锚点策略一致。
+
+消费建议：
+
+- 将 `message.appended` 视为增量拉取 fast path
+- 将 `session.updated` 视为 fallback refresh 信号
+- 对重复 `message.appended` 保持幂等去重
 
 ### `source.error`
 

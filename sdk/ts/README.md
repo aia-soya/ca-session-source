@@ -9,6 +9,14 @@
 
 SDK 对外暴露 source-oriented 的 camelCase 类型，消费方不需要直接耦合 AgentsView 的内部 JSON 细节。
 
+当前 M5 的消息锚点策略为：
+
+```text
+sessionId + messageOrdinal
+```
+
+`sourceUuid / sourceType / sourceSubtype` 会继续透出，但仅作为增强元信息预留，不是消费方建立 transcript 增量语义的前提。
+
 ## 安装方式
 
 当前包会发布由 `unbuild` 自动生成的 `dist/` 运行时代码与 `.d.ts` 声明入口，适合被 workspace、Git URL 或 tarball 直接引用。
@@ -58,12 +66,14 @@ const watched = await watchSessionTranscript(client, "sess-1", {
       return;
     }
 
+    console.log(update.latestAnchor);
     console.log(update.appendedMessages);
   }
 });
 
 console.log(watched.snapshot.messages);
 console.log(watched.snapshot.startOrdinal);
+console.log(watched.snapshot.latestAnchor);
 
 const olderPage = await watched.fetchEarlierPage({ pageLimit: 100 });
 console.log(olderPage.fetchedMessages);
@@ -79,6 +89,7 @@ await watched.closed;
 ```ts
 import {
   CaSessionSourceClient,
+  createMessageAnchor,
   consumeTranscriptEvent,
   fetchEarlierSessionTranscriptPage,
   fetchSessionTranscriptSnapshot
@@ -105,9 +116,23 @@ const sub = client.watchEvents(async (event) => {
     return;
   }
 
+  console.log(update.latestAnchor);
   console.log(update.appendedMessages);
 });
+
+const latestMessage = snapshot.messages.at(-1);
+const anchor = latestMessage
+  ? createMessageAnchor(latestMessage)
+  : snapshot.latestAnchor;
+console.log(anchor);
 ```
+
+推荐消费语义：
+
+- `message.appended` 作为 fast path，优先使用 `event.messageOrdinal` 发起补拉
+- `session.updated` 作为 fallback，使用 `buffer.latestOrdinal + 1` 补拉
+- 对重复事件与 reconnect 补洞保持幂等，SDK `SessionMessageBuffer` 默认按 ordinal 去重
+- 原始 `getMessages(...)` 仍是 ordinal-window 语义；若需要稳定的历史翻页 `hasMore`，优先使用 transcript helper
 
 ## 脚本
 

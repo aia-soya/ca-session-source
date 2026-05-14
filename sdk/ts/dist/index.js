@@ -9,6 +9,7 @@ export {
   watchSourceEvents
 } from "./events.js";
 export {
+  createMessageAnchor,
   SessionMessageBuffer,
   consumeTranscriptEvent,
   fetchEarlierSessionTranscriptPage,

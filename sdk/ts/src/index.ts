@@ -9,6 +9,7 @@ export {
   watchSourceEvents,
 } from "./events.ts";
 export {
+  createMessageAnchor,
   SessionMessageBuffer,
   consumeTranscriptEvent,
   fetchEarlierSessionTranscriptPage,
@@ -24,6 +25,7 @@ export type {
   CaSessionSourceClientOptions,
   EventSubscription,
   Message,
+  MessageAnchor,
   MessageOptions,
   MessagePage,
   Session,

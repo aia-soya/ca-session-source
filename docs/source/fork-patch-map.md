@@ -91,6 +91,21 @@
 | `2026-05-13` | `A` | `internal/source/hydration.go` | `M1` | 拆出 full-session hydration 策略与批量补齐逻辑 | 低 | `go test ./internal/source -count=1` |
 | `2026-05-13` | `A` | `internal/source/mappers.go` | `M1` | 拆出 Session/Message/ToolCall DTO mapping 逻辑 | 低 | `go test ./internal/source -count=1` |
 | `2026-05-13` | `A` | `internal/source/service_test.go` | `M1` | 新增 facade 单测覆盖 mapping、分页、空结果与未接线事件流 | 低 | `go test ./internal/source -count=1` |
+| `2026-05-13` | `A` | `docs/source/message-anchor.md` | `M5` | 明确 `sessionId + messageOrdinal` 锚点策略与 `sourceUuid` 升级路径 | 低 | 文档审阅 |
+| `2026-05-13` | `A` | `docs/source/incremental-consumption.md` | `M5` | 明确 `message.appended` fast path、`session.updated` fallback、幂等与 reconnect 补洞语义 | 低 | 文档审阅 |
+| `2026-05-13` | `M` | `docs/source/events.md` | `M5` | 将事件契约与锚点/消费策略文档交叉引用，统一对外口径 | 低 | 文档审阅 |
+| `2026-05-13` | `M` | `sdk/ts/src/types.ts` | `M5` | 显式新增 `MessageAnchor` 与 transcript helper 的 `latestAnchor` contract | 低 | `npm test` |
+| `2026-05-13` | `M` | `sdk/ts/src/transcript.ts` | `M5` | 为 snapshot、增量消费与历史翻页结果补齐显式 anchor 返回值 | 低 | `npm test` |
+| `2026-05-13` | `A` | `sdk/ts/src/transcript-buffer.ts` | `M5` | 拆出 transcript buffer 与 anchor 构造逻辑，降低单文件职责堆积 | 低 | `npm test` |
+| `2026-05-13` | `A` | `sdk/ts/src/transcript-sync.ts` | `M5` | 拆出 snapshot、增量补洞与历史翻页逻辑，保留薄 watch facade | 低 | `npm test` |
+| `2026-05-13` | `M` | `sdk/ts/src/index.ts` | `M5` | 导出 `createMessageAnchor(...)` 与 `MessageAnchor` | 低 | `npm test` |
+| `2026-05-13` | `A` | `sdk/ts/src/client-mappers.ts` | `M5` | 拆出 raw DTO 与 source-oriented mapper，降低 client facade 耦合 | 低 | `npm test` |
+| `2026-05-13` | `A` | `sdk/ts/src/client-transport.ts` | `M5` | 拆出 HTTP/URL/error transport helper，避免 client facade 继续膨胀 | 低 | `npm test` |
+| `2026-05-13` | `M` | `sdk/ts/src/client.ts` | `M5` | 收敛为薄 client facade，组合 mapper 与 transport seam | 低 | `npm test` |
+| `2026-05-13` | `M` | `sdk/ts/test/client-contract.js` | `M5` | 补兼容性测试，覆盖缺失 sourceUuid、重复事件、fallback、分页边界与未知事件 | 低 | `npm test` |
+| `2026-05-13` | `M` | `sdk/ts/test/dist-types.test.js` | `M5` | 收敛发布态类型契约，避免 dist 与源码导出漂移 | 低 | `npm test` |
+| `2026-05-13` | `M` | `sdk/ts/README.md` | `M5` | 同步 SDK 消费示例到显式 anchor 与分页语义 | 低 | 文档审阅 |
+| `2026-05-13` | `M` | `STATUS.md` | `M5` | 记录消息锚点与消费语义收敛进展 | 低 | 文档审阅 |
 
 ## 与 upstream merge 的关系
 

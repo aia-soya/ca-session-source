@@ -14,6 +14,7 @@
 - M2 已进入代码阶段，新增 source event adapter 与 `/api/source/v1/events` SSE 路由，开始把 broadcaster 粗粒度刷新信号收敛为稳定 SourceEvent。
 - M3 已进入代码阶段，新增 `sdk/ts/` TypeScript SDK，开始以 source-oriented client 形式复用现有 `/api/v1` 读接口与 `/api/source/v1/events` 稳定事件流。
 - M4 已完成：已建立 SDK smoke harness，并用真实 HTTP/SSE 服务验证 snapshot、event-driven incremental fetch、重连补洞与历史翻页闭环。
+- M5 已完成：已明确 `sessionId + messageOrdinal` 消息锚点策略，补齐增量消费文档、SDK 显式 anchor contract 与兼容性测试，并把原始 message page 与 transcript helper 的分页语义边界收敛到统一口径。
 
 ## 最近完成
 
@@ -72,12 +73,17 @@ source.error
 - 为 SDK 补充独立类型检查：新增 `npm run typecheck`，统一用 `tsc --noEmit` 校验 `src/` 公共源码的类型正确性，让运行时构建和类型诊断职责分离。
 - 修正 transcript buffer 的规模化热点：`SessionMessageBuffer` 现在缓存 `earliestOrdinal / latestOrdinal / messages`，避免在大 session 的快照、历史翻页与增量补洞路径上重复全量扫描和排序。
 - 在 `sdk/ts/package.json`、`sdk/ts/README.md` 中补充 `npm run smoke` 与运行说明，降低后续消费方和仓内联调的启动成本。
+- 新增 `docs/source/message-anchor.md` 与 `docs/source/incremental-consumption.md`，把 M5 的消息锚点、`message.appended` fast path、`session.updated` fallback、重复事件幂等与 reconnect 补洞语义收敛为权威文档。
+- 在 `sdk/ts` 中显式新增 `MessageAnchor` / `createMessageAnchor(...)` / `latestAnchor` 返回值，统一 SDK transcript snapshot、增量消费结果与历史翻页结果的消息锚点口径，同时保持 `sourceUuid / sourceType / sourceSubtype` 为可选增强字段。
+- 扩展 SDK contract tests，覆盖缺失 `sourceUuid`、重复 `message.appended`、`session.updated` fallback、历史翻页边界与 unknown event type 忽略语义，降低后续协议演进对消费方的回归风险。
+- 收敛 SDK 源码热点：将原先职责过载的 `sdk/ts/src/transcript.ts` 拆为 `transcript-buffer.ts`、`transcript-sync.ts` 和薄 `transcript.ts` facade；同时将 `sdk/ts/src/client.ts` 拆出 `client-mappers.ts` 与 `client-transport.ts`，降低后续 M6 REST 合同演进时的单文件耦合。
 
 ## 当前待办
 
 - 继续完善 M1：评估是否需要在 facade 中补更明确的 `updatedAt` / 空值语义说明，并为后续 source API 预留更稳定的 filter/DTO 约束。
 - 继续完善 M2：评估是否需要进一步缩小初次 connect 时的全量 snapshot 成本，并确认后续 SDK 是否直接消费 `source_event` / PRD 定义的 `camelCase` 协议。
-- 持续观察 M4 后续反馈：关注真实 Codex / Claude session 下更大规模分页体验、长时间断线后的补洞成本，以及历史翻页 API 是否还需要补充更明确的窗口/cursor 语义。
+- 持续观察 M5 后续反馈：关注真实 Codex / Claude session 下更大规模分页体验、长时间断线后的补洞成本，以及 M6 `/api/source/v1/*` 是否需要把 helper 里的 `hasMore`/anchor 语义进一步下沉为稳定 REST 合同。
+- 继续观察 SDK 模块边界：若后续 transcript helper 或 `/api/source/v1/*` 继续扩展，优先沿现有 `buffer / sync / watch` 与 `transport / mapper / facade` 分层演进，避免重新回到单文件职责堆积。
 - 评估 M6 之前是否需要新增 `/api/source/v1/sessions*` facade，逐步把 SDK 从 `/api/v1` 底座切到稳定 source REST 合同。
 - 持续维护 `docs/source/fork-patch-map.md`，避免 source 改动扩散到 upstream 核心目录。
 

@@ -1,4 +1,4 @@
-import type { CaSessionSourceClientOptions, EventSubscription, MessageOptions, MessagePage, Session, SessionFilter, SessionPage, SourceEvent, ToolCall, WatchEventsOptions } from "./types.js";
+import type { CaSessionSourceClientOptions, EventSubscription, MessagePage, MessageOptions, Session, SessionFilter, SessionPage, SourceEvent, ToolCall, WatchEventsOptions } from "./types.js";
 export declare class CaSessionSourceClient {
     private readonly baseUrl;
     private readonly restBaseUrl;
