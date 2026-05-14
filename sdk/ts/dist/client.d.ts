@@ -1,4 +1,4 @@
-import type { CaSessionSourceClientOptions, EventSubscription, MessagePage, MessageOptions, Session, SessionFilter, SessionPage, SourceEvent, ToolCall, WatchEventsOptions } from "./types.js";
+import type { CaSessionSourceClientOptions, EventSubscription, MessagePage, MessageOptions, Session, SessionFilter, SessionPage, SourceHealth, SourceEvent, SourceVersion, ToolCall, WatchEventsOptions } from "./types.js";
 export declare class CaSessionSourceClient {
     private readonly baseUrl;
     private readonly restBaseUrl;
@@ -11,6 +11,8 @@ export declare class CaSessionSourceClient {
     getSession(sessionId: string): Promise<Session>;
     getMessages(sessionId: string, options?: MessageOptions): Promise<MessagePage>;
     getToolCalls(sessionId: string): Promise<ToolCall[]>;
+    getVersion(): Promise<SourceVersion>;
+    getHealth(): Promise<SourceHealth>;
     watchEvents(onEvent: (event: SourceEvent) => void | Promise<void>, options?: WatchEventsOptions): EventSubscription;
     private fetchJSON;
     private requestHeaders;

@@ -49,13 +49,16 @@ type Message struct {
 }
 
 type ToolCall struct {
-	ToolName          string `json:"tool_name"`
-	Category          string `json:"category,omitempty"`
-	ToolUseID         string `json:"tool_use_id,omitempty"`
-	InputJSON         string `json:"input_json,omitempty"`
-	SkillName         string `json:"skill_name,omitempty"`
-	ResultContent     string `json:"result_content,omitempty"`
-	SubagentSessionID string `json:"subagent_session_id,omitempty"`
+	ToolName            string `json:"tool_name"`
+	Category            string `json:"category,omitempty"`
+	ToolUseID           string `json:"tool_use_id,omitempty"`
+	InputJSON           string `json:"input_json,omitempty"`
+	SkillName           string `json:"skill_name,omitempty"`
+	ResultContentLength int    `json:"result_content_length,omitempty"`
+	ResultContent       string `json:"result_content,omitempty"`
+	SubagentSessionID   string `json:"subagent_session_id,omitempty"`
+	Ordinal             int    `json:"ordinal,omitempty"`
+	Timestamp           string `json:"timestamp,omitempty"`
 }
 
 type Event struct {

@@ -1,7 +1,7 @@
 export function mapSessionPage(raw) {
   return omitUndefined({
     sessions: normalizeArray(raw.sessions).map(mapSession),
-    nextCursor: raw.next_cursor,
+    nextCursor: raw.nextCursor,
     total: raw.total
   });
 }
@@ -11,8 +11,25 @@ export function mapMessagePage(raw) {
     count: raw.count
   };
 }
+export function mapSourceVersion(raw) {
+  return omitUndefined({
+    schemaVersion: raw.schemaVersion,
+    version: raw.version,
+    commit: raw.commit,
+    buildDate: raw.buildDate,
+    readOnly: raw.readOnly
+  });
+}
+export function mapSourceHealth(raw) {
+  return omitUndefined({
+    schemaVersion: raw.schemaVersion,
+    status: raw.status,
+    readOnly: raw.readOnly,
+    eventStreamAvailable: raw.eventStreamAvailable
+  });
+}
 export function mapToolCallPage(raw) {
-  return normalizeArray(raw.tool_calls).map(mapSessionToolCall);
+  return normalizeArray(raw.toolCalls).map(mapSessionToolCall);
 }
 export function mapSession(raw) {
   return omitUndefined({
@@ -21,61 +38,51 @@ export function mapSession(raw) {
     project: raw.project,
     machine: emptyToUndefined(raw.machine),
     cwd: emptyToUndefined(raw.cwd),
-    gitBranch: emptyToUndefined(raw.git_branch),
-    firstMessage: nullableToUndefined(raw.first_message),
-    displayName: nullableToUndefined(raw.display_name),
-    startedAt: nullableToUndefined(raw.started_at),
-    endedAt: nullableToUndefined(raw.ended_at),
-    messageCount: raw.message_count,
-    userMessageCount: raw.user_message_count,
-    sourcePath: nullableToUndefined(raw.file_path),
-    updatedAt: nullableToUndefined(raw.local_modified_at) ?? nullableToUndefined(raw.ended_at) ?? nullableToUndefined(raw.started_at) ?? emptyToUndefined(raw.created_at)
+    gitBranch: emptyToUndefined(raw.gitBranch),
+    firstMessage: nullableToUndefined(raw.firstMessage),
+    displayName: nullableToUndefined(raw.displayName),
+    startedAt: nullableToUndefined(raw.startedAt),
+    endedAt: nullableToUndefined(raw.endedAt),
+    messageCount: raw.messageCount,
+    userMessageCount: raw.userMessageCount,
+    sourcePath: nullableToUndefined(raw.sourcePath),
+    updatedAt: nullableToUndefined(raw.updatedAt) ?? nullableToUndefined(raw.endedAt) ?? nullableToUndefined(raw.startedAt)
   });
 }
 export function mapMessage(raw) {
   return omitUndefined({
     id: raw.id,
-    sessionId: raw.session_id,
+    sessionId: raw.sessionId,
     ordinal: raw.ordinal,
     role: raw.role,
     content: raw.content,
-    thinkingText: emptyToUndefined(raw.thinking_text),
+    thinkingText: emptyToUndefined(raw.thinkingText),
     timestamp: emptyToUndefined(raw.timestamp),
-    hasThinking: raw.has_thinking,
-    hasToolUse: raw.has_tool_use,
+    hasThinking: raw.hasThinking,
+    hasToolUse: raw.hasToolUse,
     model: emptyToUndefined(raw.model),
-    tokenUsage: raw.token_usage,
-    sourceUuid: emptyToUndefined(raw.source_uuid),
-    sourceType: emptyToUndefined(raw.source_type),
-    sourceSubtype: emptyToUndefined(raw.source_subtype),
-    toolCalls: raw.tool_calls?.map(mapEmbeddedToolCall)
+    tokenUsage: raw.tokenUsage,
+    sourceUuid: emptyToUndefined(raw.sourceUuid),
+    sourceType: emptyToUndefined(raw.sourceType),
+    sourceSubtype: emptyToUndefined(raw.sourceSubtype),
+    toolCalls: raw.toolCalls?.map(mapToolCallRecord)
   });
 }
-function mapEmbeddedToolCall(raw) {
+function mapToolCallRecord(raw) {
   return omitUndefined({
-    toolName: raw.tool_name,
+    toolName: raw.toolName,
     category: emptyToUndefined(raw.category),
-    toolUseId: emptyToUndefined(raw.tool_use_id),
-    inputJson: emptyToUndefined(raw.input_json),
-    skillName: emptyToUndefined(raw.skill_name),
-    resultContent: emptyToUndefined(raw.result_content),
-    resultContentLength: raw.result_content_length,
-    subagentSessionId: emptyToUndefined(raw.subagent_session_id)
-  });
-}
-function mapSessionToolCall(raw) {
-  return omitUndefined({
-    toolName: raw.tool_name,
-    category: emptyToUndefined(raw.category),
-    toolUseId: emptyToUndefined(raw.tool_use_id),
-    inputJson: emptyToUndefined(raw.input_json),
-    skillName: emptyToUndefined(raw.skill_name),
-    subagentSessionId: emptyToUndefined(raw.subagent_session_id),
+    toolUseId: emptyToUndefined(raw.toolUseId),
+    inputJson: emptyToUndefined(raw.inputJson),
+    skillName: emptyToUndefined(raw.skillName),
+    resultContent: emptyToUndefined(raw.resultContent),
+    resultContentLength: raw.resultContentLength,
+    subagentSessionId: emptyToUndefined(raw.subagentSessionId),
     ordinal: raw.ordinal,
-    timestamp: emptyToUndefined(raw.timestamp),
-    resultContentLength: raw.result_length
+    timestamp: emptyToUndefined(raw.timestamp)
   });
 }
+const mapSessionToolCall = mapToolCallRecord;
 function nullableToUndefined(value) {
   if (value == null || value === "") {
     return void 0;

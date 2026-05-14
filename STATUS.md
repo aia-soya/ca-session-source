@@ -12,9 +12,10 @@
 - 已创建 `ca-session-source` 开发分支，后续 source 研发工作可不再继续堆叠在 `main`。
 - M1 已进入代码阶段，新增 `internal/source/` facade 雏形，并完成基于 `db.Store` 的窄 DTO 读取适配与单测。
 - M2 已进入代码阶段，新增 source event adapter 与 `/api/source/v1/events` SSE 路由，开始把 broadcaster 粗粒度刷新信号收敛为稳定 SourceEvent。
-- M3 已进入代码阶段，新增 `sdk/ts/` TypeScript SDK，开始以 source-oriented client 形式复用现有 `/api/v1` 读接口与 `/api/source/v1/events` 稳定事件流。
+- M3 已进入代码阶段，新增 `sdk/ts/` TypeScript SDK，并在后续 M6 收敛为 source-oriented client 形式统一消费 `/api/source/v1` 稳定读接口与事件流。
 - M4 已完成：已建立 SDK smoke harness，并用真实 HTTP/SSE 服务验证 snapshot、event-driven incremental fetch、重连补洞与历史翻页闭环。
 - M5 已完成：已明确 `sessionId + messageOrdinal` 消息锚点策略，补齐增量消费文档、SDK 显式 anchor contract 与兼容性测试，并把原始 message page 与 transcript helper 的分页语义边界收敛到统一口径。
+- M6 已完成：已新增 `/api/source/v1/sessions*`、`tool-calls`、`version`、`health` 稳定 REST facade，补齐 `schemaVersion`、OpenAPI 与合同测试，并将 SDK 收敛为仅消费 `/api/source/v1`。
 
 ## 最近完成
 
@@ -64,7 +65,7 @@ source.error
 - 新增 `sdk/ts/examples/smoke/smoke_test.go`，以真实 `server.New(...)` + SQLite + `/api/source/v1/events` + Node SDK 脚本的组合方式覆盖 M4 的消费闭环回归。
 - 扩展 `sdk/ts/examples/smoke`：支持期望最终消息数、重连开关与 reopen 观测，并补充真实服务回归覆盖“断线重连后用 latest ordinal 补齐缺口”以及“`tool_calls` 为空不影响快照主路径”。
 - 继续扩展 `sdk/ts/examples/smoke`：补充 `source.error` surfaced 回归，验证 source adapter 首次 appended backfill 失败后，消费方仍能在后续 refresh 中补齐缺口而不丢消息。
-- 修正 SDK 对空页响应的兼容性：当现有 `/api/v1/sessions/{id}/messages` 返回 `messages: null` 时，`CaSessionSourceClient` 现在会归一为空数组，不再在增量补洞或空结果场景下因 `.map(...)` 崩溃。
+- 修正 SDK 对空页响应的兼容性：当 `/api/source/v1/sessions/{id}/messages` 返回 `messages: null` 时，`CaSessionSourceClient` 现在会归一为空数组，不再在增量补洞或空结果场景下因 `.map(...)` 崩溃。
 - 将 smoke 中验证过的消费模式沉淀为 SDK helper：新增 transcript helper，用统一的 `SessionMessageBuffer + fetchSessionTranscriptSnapshot + consumeTranscriptEvent` 复用“快照分页 + latest ordinal 增量补洞 + source.error surfaced”逻辑，降低消费方重复实现成本。
 - 在 transcript helper 之上继续补自动 watch orchestration：新增 `watchSessionTranscript(...)`，把 snapshot、`watchEvents(...)` 与 buffer update 收敛成一步式消费入口，并让 smoke harness 直接 dogfood 该入口。
 - 继续补齐大 session 冷启动体验：为 transcript helper 新增 `tailMessageCount` 与 `startOrdinal`，允许消费方只拉最近 N 条消息建立尾部快照，同时保持后续增量补洞语义不变；并新增真实 smoke 回归覆盖该路径。
@@ -77,14 +78,31 @@ source.error
 - 在 `sdk/ts` 中显式新增 `MessageAnchor` / `createMessageAnchor(...)` / `latestAnchor` 返回值，统一 SDK transcript snapshot、增量消费结果与历史翻页结果的消息锚点口径，同时保持 `sourceUuid / sourceType / sourceSubtype` 为可选增强字段。
 - 扩展 SDK contract tests，覆盖缺失 `sourceUuid`、重复 `message.appended`、`session.updated` fallback、历史翻页边界与 unknown event type 忽略语义，降低后续协议演进对消费方的回归风险。
 - 收敛 SDK 源码热点：将原先职责过载的 `sdk/ts/src/transcript.ts` 拆为 `transcript-buffer.ts`、`transcript-sync.ts` 和薄 `transcript.ts` facade；同时将 `sdk/ts/src/client.ts` 拆出 `client-mappers.ts` 与 `client-transport.ts`，降低后续 M6 REST 合同演进时的单文件耦合。
+- 新增 `internal/sourceapi/types.go`，集中定义 M6 的稳定 source REST 响应壳、camelCase DTO mapper 与 `ca-session.source.v1` schema version 常量。
+- 新增 `internal/server/source_api.go` 并在 `internal/server/server.go` 挂载 `GET /api/source/v1/sessions`、`/sessions/{id}`、`/sessions/{id}/messages`、`/sessions/{id}/tool-calls`、`/version`、`/health`，对外提供带 `schemaVersion` 的稳定 source REST facade。
+- 将 `/api/source/v1/events` 的错误响应统一为带 `schemaVersion` 的 source JSON envelope，避免 source REST/SSE 在错误路径上再回退到 upstream 风格 payload。
+- 为 source facade 补齐 `ToolCall` 扩展字段：`resultContentLength`、`ordinal`、`timestamp`，让 M6 source REST 与 SDK 切换到底座后仍保留现有 tool-call 上下文能力。
+- 将 `sdk/ts` 的 REST 读取面完全收敛到 `/api/source/v1/`，移除开发期无意义的 `restBasePath` 逃生口与旧 `/api/v1` 双协议 mapper，明确单一 source contract。
+- 新增 `docs/source/openapi.yaml`，收敛 M6 `/api/source/v1/*` 的稳定 HTTP/SSE 合同，覆盖 sessions、messages、tool-calls、events、version 与 health。
+- 新增 `internal/server/source_api_test.go` 与 SDK 合同用例，覆盖 source REST 的 camelCase/schemaVersion 合同、source error envelope、health/version 元数据，并同步删除旧 `/api/v1` 兼容测试。
+- 为 SDK 新增 `getVersion()` 与 `getHealth()` 便捷方法，并补齐 `SourceVersion` / `SourceHealth` 类型、mapper、README 示例与 contract tests，让消费方无需手写 `/version`、`/health` 请求。
+- 将 `version/health` 进一步下沉到 SDK smoke harness：`examples/smoke/run.js` 现在会先验证 source schema 与事件流能力，再进入 transcript 快照/增量闭环；对应 Go smoke 回归也已断言这些字段。
+- 收敛 M6 handler 的查询解析重复：新增共享 request filter parser，让 `/api/v1/sessions*` 与 `/api/source/v1/sessions*` 复用同一套 limit/date/direction 校验，降低后续 query 语义漂移风险。
+- 收敛 SDK source contract 的内部重复定义：新增 `sdk/ts/src/client-payloads.ts` 作为 source REST envelope 层，`client-mappers.ts` 直接复用公共 DTO 与 payload 壳，不再在 mapper 内维护第二套 raw schema 副本。
+- 拆分过长的 SDK contract suite：`sdk/ts/test/client-contract.js` 现在只做顶层编排，REST / transcript / events 分别下沉到独立测试模块，并抽出共享 helper，避免继续向单文件堆叠所有 contract case。
+- 拆分 smoke harness 的 Node/Go 热点文件：`examples/smoke/run.js` 收敛为薄入口，配置解析、结果组装与执行状态机拆到 `examples/smoke/lib/*`；原 `smoke_test.go` 则拆成 bootstrap / resilience / support / seed / result 多文件，降低职责混合与后续扩展成本。
+- 继续细化 transcript contract 边界：`sdk/ts/test/transcript-contract.js` 现在只保留顶层编排，snapshot/history、event consumption、watch orchestration 分别拆到独立 suite，避免 transcript helper 的所有 contract 再次回流到单文件。
+- 继续细化 smoke Go helper：将原 `smoke_support_test.go` 再拆成 env / process / transport 三个职责文件，分离测试环境搭建、Node 进程编排与断连注入 helper，降低 smoke harness 的定位成本。
+- 继续细化 SDK REST contract：`sdk/ts/test/client-rest-contract.js` 现在只做 REST 顶层编排，sessions、messages、tool-calls、version/health 与 error path 分别拆到独立 suite，避免 source API 合同继续集中堆叠在单一测试文件中。
+- 为 SDK contract tests 抽取共享 fixture builder：新增 `sdk/ts/test/contract-fixtures.js`，集中提供 session/message/tool-call/version/health/event payload builder，让 REST 与 transcript suites 只覆写关心字段，降低测试样板和协议字段漂移风险。
 
 ## 当前待办
 
 - 继续完善 M1：评估是否需要在 facade 中补更明确的 `updatedAt` / 空值语义说明，并为后续 source API 预留更稳定的 filter/DTO 约束。
 - 继续完善 M2：评估是否需要进一步缩小初次 connect 时的全量 snapshot 成本，并确认后续 SDK 是否直接消费 `source_event` / PRD 定义的 `camelCase` 协议。
-- 持续观察 M5 后续反馈：关注真实 Codex / Claude session 下更大规模分页体验、长时间断线后的补洞成本，以及 M6 `/api/source/v1/*` 是否需要把 helper 里的 `hasMore`/anchor 语义进一步下沉为稳定 REST 合同。
+- 持续观察 M5/M6 后续反馈：关注真实 Codex / Claude session 下更大规模分页体验、长时间断线后的补洞成本，以及是否需要把 helper 里的 `hasMore`/anchor 语义进一步下沉为稳定 REST 合同。
 - 继续观察 SDK 模块边界：若后续 transcript helper 或 `/api/source/v1/*` 继续扩展，优先沿现有 `buffer / sync / watch` 与 `transport / mapper / facade` 分层演进，避免重新回到单文件职责堆积。
-- 评估 M6 之前是否需要新增 `/api/source/v1/sessions*` facade，逐步把 SDK 从 `/api/v1` 底座切到稳定 source REST 合同。
+- 评估后续是否要在 source 协议内继续下沉更稳定的分页 contract，以及 `version/health` 是否需要进一步承载 endpoint capability 元数据。
 - 持续维护 `docs/source/fork-patch-map.md`，避免 source 改动扩散到 upstream 核心目录。
 
 ## 已知说明
@@ -92,4 +110,4 @@ source.error
 - 本文件记录“当前真实进展”，不替代规格与计划。
 - 若 `STATUS.md` 与 [SPEC.md](./SPEC.md) 或 [PLAN.md](./PLAN.md) 冲突，以规格和计划判断目标，以 `STATUS.md` 反映现状。
 - 当前 M2 已为 source facade 提供 broadcaster -> SourceEvent adapter，并新增 `/api/source/v1/events`；底层 broadcaster 仍是 coarse-grained `scope` 事件，因此 `message.appended` 语义仍由 source adapter 通过快照 diff 与增量消息查询补齐。
-- 当前 M3 SDK 仍以“稳定 client contract + 复用现有服务端接口”为主：sessions/messages/tool-calls 先走 `/api/v1`，稳定 source 事件走 `/api/source/v1/events`，待后续 `/api/source/v1/*` REST facade 收敛后再平滑切换底层实现。
+- 当前 SDK 与文档均以 `/api/source/v1` 为唯一受支持的稳定 contract，不再为开发期不存在的旧服务形态保留额外兼容入口。

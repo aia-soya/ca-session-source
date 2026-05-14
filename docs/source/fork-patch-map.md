@@ -106,6 +106,40 @@
 | `2026-05-13` | `M` | `sdk/ts/test/dist-types.test.js` | `M5` | 收敛发布态类型契约，避免 dist 与源码导出漂移 | 低 | `npm test` |
 | `2026-05-13` | `M` | `sdk/ts/README.md` | `M5` | 同步 SDK 消费示例到显式 anchor 与分页语义 | 低 | 文档审阅 |
 | `2026-05-13` | `M` | `STATUS.md` | `M5` | 记录消息锚点与消费语义收敛进展 | 低 | 文档审阅 |
+| `2026-05-14` | `A` | `internal/sourceapi/types.go` | `M6` | 新增稳定 source REST 响应壳、camelCase DTO mapper 与 `schemaVersion` 常量 | 低 | `go test ./internal/source ./internal/server -count=1` |
+| `2026-05-14` | `A` | `internal/server/source_api.go` | `M6` | 新增 `/api/source/v1/sessions*`、`tool-calls`、`version`、`health` facade handler | 低 | `go test ./internal/source ./internal/server -count=1` |
+| `2026-05-14` | `M` | `internal/server/server.go` | `M6` | 挂载 M6 source REST 路由，新增稳定 source contract 集成点 | 低 | `go test ./internal/source ./internal/server -count=1` |
+| `2026-05-14` | `M` | `internal/server/source_events.go` | `M6` | 将 source SSE 的错误路径统一到带 `schemaVersion` 的 source error envelope | 低 | `go test ./internal/source ./internal/server -count=1` |
+| `2026-05-14` | `M` | `internal/source/types.go` | `M6` | 为 source `ToolCall` DTO 补齐 `resultContentLength`、`ordinal`、`timestamp` | 低 | `go test ./internal/source ./internal/server -count=1` |
+| `2026-05-14` | `M` | `internal/source/mappers.go` | `M6` | 扩展 tool-call mapper，保留 result metadata 到 source facade | 低 | `go test ./internal/source ./internal/server -count=1` |
+| `2026-05-14` | `M` | `internal/source/agentsview_service.go` | `M6` | 在 flattened tool-call 路径补齐父 message 的 ordinal/timestamp 上下文 | 低 | `go test ./internal/source ./internal/server -count=1` |
+| `2026-05-14` | `A` | `internal/server/source_api_test.go` | `M6` | 新增 source REST 合同测试，覆盖 camelCase/schemaVersion、version/health 与 error envelope | 低 | `go test ./internal/source ./internal/server -count=1` |
+| `2026-05-14` | `M` | `internal/server/source_events_test.go` | `M6` | 更新 source SSE 错误合同测试，校验 `schemaVersion` | 低 | `go test ./internal/source ./internal/server -count=1` |
+| `2026-05-14` | `M` | `sdk/ts/src/client.ts` | `M6` | 将 SDK 默认 REST base path 切换到 `/api/source/v1/` | 低 | `npm test` |
+| `2026-05-14` | `M` | `sdk/ts/src/client-mappers.ts` | `M6` | 将 SDK mapper 收敛到单一 source camelCase contract，移除开发期双协议兼容 | 低 | `npm test` |
+| `2026-05-14` | `M` | `sdk/ts/test/client-contract.js` | `M6` | 收敛 SDK 合同测试到唯一 `/api/source/v1` 协议 | 低 | `npm test` |
+| `2026-05-14` | `M` | `sdk/ts/README.md` | `M6` | 明确 SDK 仅支持 `/api/source/v1` 稳定协议 | 低 | 文档审阅 |
+| `2026-05-14` | `A` | `docs/source/openapi.yaml` | `M6` | 新增 `/api/source/v1/*` 的 OpenAPI 合同文档 | 低 | 文档审阅 |
+| `2026-05-14` | `M` | `STATUS.md` | `M6` | 记录 Source API 稳定化完成情况与后续观察点 | 低 | 文档审阅 |
+| `2026-05-14` | `A` | `internal/server/request_filters.go` | `M6` | 抽出 sessions/messages 共享 query parser，避免 `/api/v1` 与 `/api/source/v1` 校验逻辑双写漂移 | 低 | `go test ./internal/server -count=1` |
+| `2026-05-14` | `A` | `sdk/ts/src/client-payloads.ts` | `M6` | 新增 source REST payload envelope 层，复用公共 DTO 降低 SDK 内部 schema 副本数量 | 低 | `npm test` |
+| `2026-05-14` | `A` | `sdk/ts/test/contract-helpers.js` | `M6` | 抽出 SDK contract suite 的 fetch/SSE 共用 helper，降低测试样板重复 | 低 | `npm test` |
+| `2026-05-14` | `A` | `sdk/ts/test/contract-fixtures.js` | `M6` | 抽出 source REST/event 的共享 fixture builder，集中维护测试 payload 缺省值与 schema 常量 | 低 | `npm test` |
+| `2026-05-14` | `A` | `sdk/ts/test/client-rest-contract.js` | `M6` | 将 REST 合同断言从 catch-all 测试文件中拆出，收敛测试职责边界 | 低 | `npm test` |
+| `2026-05-14` | `A` | `sdk/ts/test/client-session-rest-contract.js` | `M6` | 将 sessions REST contract 独立成 suite，单独覆盖 query/header/source DTO 映射语义 | 低 | `npm test` |
+| `2026-05-14` | `A` | `sdk/ts/test/client-message-rest-contract.js` | `M6` | 将 messages REST contract 独立成 suite，隔离 message/tool-call/anchor/null-page 合同回归 | 低 | `npm test` |
+| `2026-05-14` | `A` | `sdk/ts/test/client-tool-call-rest-contract.js` | `M6` | 将 flattened tool-call REST contract 独立成 suite，避免与 messages/version/error 测试混堆 | 低 | `npm test` |
+| `2026-05-14` | `A` | `sdk/ts/test/client-metadata-rest-contract.js` | `M6` | 将 `version/health` metadata contract 独立成 suite，便于后续扩 capability 字段 | 低 | `npm test` |
+| `2026-05-14` | `A` | `sdk/ts/test/client-error-rest-contract.js` | `M6` | 将 REST error path contract 独立成 suite，隔离 ApiError 映射回归 | 低 | `npm test` |
+| `2026-05-14` | `A` | `sdk/ts/test/transcript-contract.js` | `M6` | 将 transcript helper 合同拆成独立 suite，避免继续膨胀单文件测试入口 | 低 | `npm test` |
+| `2026-05-14` | `A` | `sdk/ts/test/events-contract.js` | `M6` | 将 SSE/reconnect contract 独立成 events suite，提升定位与扩展可维护性 | 低 | `npm test` |
+| `2026-05-14` | `A` | `sdk/ts/examples/smoke/lib/runner.js` | `M6` | 抽出 smoke harness 执行器，分离 run.js 的 env 解析、状态机与结果输出职责 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `sdk/ts/test/transcript-snapshot-contract.js` | `M6` | 将 transcript snapshot/history contract 拆成独立 suite，降低 transcript catch-all 文件膨胀风险 | 低 | `npm test` |
+| `2026-05-14` | `A` | `sdk/ts/test/transcript-event-contract.js` | `M6` | 将 `consumeTranscriptEvent` contract 独立成 event-focused suite，便于单点扩展 source.error 与幂等回归 | 低 | `npm test` |
+| `2026-05-14` | `A` | `sdk/ts/test/transcript-watch-contract.js` | `M6` | 将 `watchSessionTranscript` orchestration contract 独立成 watch suite，避免 snapshot/event/watch 混堆 | 低 | `npm test` |
+| `2026-05-14` | `A` | `sdk/ts/examples/smoke/smoke_env_test.go` | `M6` | 抽出 smoke 测试环境搭建 helper，分离 SQLite/server 初始化职责 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `sdk/ts/examples/smoke/smoke_process_test.go` | `M6` | 抽出 smoke Node 进程编排、结果等待与 SDK build helper，降低 support file 混合职责 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `sdk/ts/examples/smoke/smoke_transport_test.go` | `M6` | 抽出 source events 断连注入 helper，隔离 HTTP transport 语义测试 seam | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
 
 ## 与 upstream merge 的关系
 

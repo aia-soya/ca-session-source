@@ -223,6 +223,18 @@ func (s *Server) routes() {
 	s.mux.HandleFunc(
 		"GET /api/source/v1/events", s.handleSourceEvents,
 	)
+	s.mux.Handle("GET /api/source/v1/sessions",
+		s.withTimeout(s.handleSourceListSessions))
+	s.mux.Handle("GET /api/source/v1/sessions/{id}",
+		s.withTimeout(s.handleSourceGetSession))
+	s.mux.Handle("GET /api/source/v1/sessions/{id}/messages",
+		s.withTimeout(s.handleSourceGetMessages))
+	s.mux.Handle("GET /api/source/v1/sessions/{id}/tool-calls",
+		s.withTimeout(s.handleSourceToolCalls))
+	s.mux.Handle("GET /api/source/v1/version",
+		s.withTimeout(s.handleSourceVersion))
+	s.mux.Handle("GET /api/source/v1/health",
+		s.withTimeout(s.handleSourceHealth))
 	// Export: Do not use timeout handler to support large downloads and avoid buffering.
 	s.mux.Handle(
 		"GET /api/v1/sessions/{id}/export", http.HandlerFunc(s.handleExportSession),

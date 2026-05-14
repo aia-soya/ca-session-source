@@ -108,7 +108,10 @@ func (s *AgentsViewStoreService) GetToolCalls(
 	calls := make([]ToolCall, 0)
 	for _, msg := range msgs {
 		for _, call := range msg.ToolCalls {
-			calls = append(calls, mapToolCall(call))
+			mapped := mapToolCall(call)
+			mapped.Ordinal = msg.Ordinal
+			mapped.Timestamp = msg.Timestamp
+			calls = append(calls, mapped)
 		}
 	}
 

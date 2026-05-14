@@ -2,6 +2,7 @@
 
 这个 smoke harness 直接消费仓内提交态 `dist/` SDK，并连接真实运行中的 `ca-session-source` 服务，验证两条最小消费闭环：
 
+- 服务能力检查：`getVersion -> getHealth`
 - 冷启动快照：`listSessions -> getSession -> getMessages -> getToolCalls`
 - 事件驱动增量：`session.updated / message.appended -> getMessages(from=...)`
 
@@ -40,6 +41,7 @@ SMOKE_RESULT {...json...}
 
 结果 JSON 会包含：
 
+- `version / health` 的 source 能力元数据，用于确认当前服务暴露的是预期 schema 与事件流能力
 - 初次快照的 `startOrdinal`，用于确认是否按尾部窗口启动
 - 初次快照拿到的分页批次数与 ordinal cache
 - 可选历史翻页的 `beforeOrdinal / fetchedOrdinals / hasMore`

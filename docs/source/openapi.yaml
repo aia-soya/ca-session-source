@@ -1,0 +1,459 @@
+openapi: 3.1.0
+info:
+  title: ca-session-source Source API
+  version: 0.1.0
+  description: |
+    稳定的 `ca-session-source` HTTP / SSE facade。
+
+    所有 `/api/source/v1/*` JSON 响应都带 `schemaVersion: ca-session.source.v1`。
+    SourceEvent SSE payload 另见 `/api/source/v1/events`，其 `schemaVersion` 固定为
+    `ca-session.event.v1`。
+servers:
+  - url: http://127.0.0.1:8080
+paths:
+  /api/source/v1/sessions:
+    get:
+      summary: List source sessions
+      parameters:
+        - $ref: '#/components/parameters/Project'
+        - $ref: '#/components/parameters/ExcludeProject'
+        - $ref: '#/components/parameters/Machine'
+        - $ref: '#/components/parameters/Agent'
+        - $ref: '#/components/parameters/Date'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - $ref: '#/components/parameters/ActiveSince'
+        - $ref: '#/components/parameters/MinMessages'
+        - $ref: '#/components/parameters/MaxMessages'
+        - $ref: '#/components/parameters/MinUserMessages'
+        - $ref: '#/components/parameters/IncludeOneShot'
+        - $ref: '#/components/parameters/IncludeAutomated'
+        - $ref: '#/components/parameters/IncludeChildren'
+        - $ref: '#/components/parameters/Outcome'
+        - $ref: '#/components/parameters/HealthGrade'
+        - $ref: '#/components/parameters/Termination'
+        - $ref: '#/components/parameters/MinToolFailures'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Session page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionPageResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+  /api/source/v1/sessions/{id}:
+    get:
+      summary: Get a source session
+      parameters:
+        - $ref: '#/components/parameters/SessionID'
+      responses:
+        '200':
+          description: Session detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+  /api/source/v1/sessions/{id}/messages:
+    get:
+      summary: List source messages for a session
+      parameters:
+        - $ref: '#/components/parameters/SessionID'
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/MessageLimit'
+        - $ref: '#/components/parameters/Direction'
+      responses:
+        '200':
+          description: Message page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagePageResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+  /api/source/v1/sessions/{id}/tool-calls:
+    get:
+      summary: List flattened source tool calls for a session
+      parameters:
+        - $ref: '#/components/parameters/SessionID'
+      responses:
+        '200':
+          description: Tool-call list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolCallsResponse'
+        '500':
+          $ref: '#/components/responses/Error'
+  /api/source/v1/events:
+    get:
+      summary: Subscribe to stable source events
+      description: |
+        SSE endpoint. Domain event name is `source_event`; keepalive event name is
+        `heartbeat`. Event payload schema is `ca-session.event.v1`.
+      responses:
+        '200':
+          description: text/event-stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: |
+                  event: source_event
+                  data: {"schemaVersion":"ca-session.event.v1","type":"session.updated","sessionId":"sess-1","messageCount":4}
+        '503':
+          $ref: '#/components/responses/Error'
+  /api/source/v1/version:
+    get:
+      summary: Get source API server version metadata
+      responses:
+        '200':
+          description: Version metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionResponse'
+  /api/source/v1/health:
+    get:
+      summary: Get source API health metadata
+      responses:
+        '200':
+          description: Health metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+components:
+  parameters:
+    SessionID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    Project:
+      name: project
+      in: query
+      schema:
+        type: string
+    ExcludeProject:
+      name: exclude_project
+      in: query
+      schema:
+        type: string
+    Machine:
+      name: machine
+      in: query
+      schema:
+        type: string
+    Agent:
+      name: agent
+      in: query
+      schema:
+        type: string
+    Date:
+      name: date
+      in: query
+      schema:
+        type: string
+        format: date
+    DateFrom:
+      name: date_from
+      in: query
+      schema:
+        type: string
+        format: date
+    DateTo:
+      name: date_to
+      in: query
+      schema:
+        type: string
+        format: date
+    ActiveSince:
+      name: active_since
+      in: query
+      schema:
+        type: string
+        format: date-time
+    MinMessages:
+      name: min_messages
+      in: query
+      schema:
+        type: integer
+    MaxMessages:
+      name: max_messages
+      in: query
+      schema:
+        type: integer
+    MinUserMessages:
+      name: min_user_messages
+      in: query
+      schema:
+        type: integer
+    IncludeOneShot:
+      name: include_one_shot
+      in: query
+      schema:
+        type: boolean
+    IncludeAutomated:
+      name: include_automated
+      in: query
+      schema:
+        type: boolean
+    IncludeChildren:
+      name: include_children
+      in: query
+      schema:
+        type: boolean
+    Outcome:
+      name: outcome
+      in: query
+      schema:
+        type: string
+    HealthGrade:
+      name: health_grade
+      in: query
+      schema:
+        type: string
+    Termination:
+      name: termination
+      in: query
+      schema:
+        type: string
+    MinToolFailures:
+      name: min_tool_failures
+      in: query
+      schema:
+        type: integer
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+    From:
+      name: from
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+    MessageLimit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+    Direction:
+      name: direction
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+  responses:
+    Error:
+      description: Source API error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    Session:
+      type: object
+      required: [id, agent, project, messageCount]
+      properties:
+        id:
+          type: string
+        agent:
+          type: string
+        project:
+          type: string
+        machine:
+          type: string
+        cwd:
+          type: string
+        gitBranch:
+          type: string
+        firstMessage:
+          type: string
+        displayName:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+        messageCount:
+          type: integer
+        userMessageCount:
+          type: integer
+        sourcePath:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+    ToolCall:
+      type: object
+      required: [toolName]
+      properties:
+        toolName:
+          type: string
+        category:
+          type: string
+        toolUseId:
+          type: string
+        inputJson:
+          type: string
+        skillName:
+          type: string
+        resultContentLength:
+          type: integer
+        resultContent:
+          type: string
+        subagentSessionId:
+          type: string
+        ordinal:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+    Message:
+      type: object
+      required: [id, sessionId, ordinal, role, content]
+      properties:
+        id:
+          type: integer
+        sessionId:
+          type: string
+        ordinal:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        thinkingText:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        hasThinking:
+          type: boolean
+        hasToolUse:
+          type: boolean
+        model:
+          type: string
+        tokenUsage:
+          description: Opaque token usage payload from the upstream agent.
+        sourceUuid:
+          type: string
+        sourceType:
+          type: string
+        sourceSubtype:
+          type: string
+        toolCalls:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolCall'
+    SessionPageResponse:
+      type: object
+      required: [schemaVersion, sessions, total]
+      properties:
+        schemaVersion:
+          type: string
+          const: ca-session.source.v1
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Session'
+        nextCursor:
+          type: string
+        total:
+          type: integer
+    SessionResponse:
+      allOf:
+        - type: object
+          required: [schemaVersion]
+          properties:
+            schemaVersion:
+              type: string
+              const: ca-session.source.v1
+        - $ref: '#/components/schemas/Session'
+    MessagePageResponse:
+      type: object
+      required: [schemaVersion, messages, count]
+      properties:
+        schemaVersion:
+          type: string
+          const: ca-session.source.v1
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        count:
+          type: integer
+    ToolCallsResponse:
+      type: object
+      required: [schemaVersion, toolCalls]
+      properties:
+        schemaVersion:
+          type: string
+          const: ca-session.source.v1
+        toolCalls:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolCall'
+    VersionResponse:
+      type: object
+      required: [schemaVersion, version, commit, buildDate]
+      properties:
+        schemaVersion:
+          type: string
+          const: ca-session.source.v1
+        version:
+          type: string
+        commit:
+          type: string
+        buildDate:
+          type: string
+        readOnly:
+          type: boolean
+    HealthResponse:
+      type: object
+      required: [schemaVersion, status, eventStreamAvailable]
+      properties:
+        schemaVersion:
+          type: string
+          const: ca-session.source.v1
+        status:
+          type: string
+          enum: [ok]
+        readOnly:
+          type: boolean
+        eventStreamAvailable:
+          type: boolean
+    ErrorResponse:
+      type: object
+      required: [schemaVersion, error]
+      properties:
+        schemaVersion:
+          type: string
+          const: ca-session.source.v1
+        error:
+          type: string

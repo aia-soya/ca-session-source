@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/wesm/agentsview/internal/source"
+	"github.com/wesm/agentsview/internal/sourceapi"
 	syncpkg "github.com/wesm/agentsview/internal/sync"
 )
 
@@ -166,5 +168,8 @@ func TestHandleSourceEvents_SubscribeErrorReturnsJSON503(t *testing.T) {
 	assert.Equal(t, "300", w.Header().Get("Retry-After"))
 	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
 	assert.NotEqual(t, "text/event-stream", w.Header().Get("Content-Type"))
-	assert.Contains(t, w.Body.String(), "snapshot failed")
+	var resp sourceapi.ErrorResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, sourceapi.SchemaVersion, resp.SchemaVersion)
+	assert.Equal(t, "snapshot failed", resp.Error)
 }

@@ -2,9 +2,9 @@
 
 `ca-session-source` 的 TypeScript SDK。
 
-当前 M3 版本复用现有服务端能力：
+当前 M6 版本默认消费稳定的 source 协议：
 
-- 读取接口走 `GET /api/v1/sessions*`
+- 读取接口走 `GET /api/source/v1/sessions*`
 - 事件订阅走稳定的 `GET /api/source/v1/events`
 
 SDK 对外暴露 source-oriented 的 camelCase 类型，消费方不需要直接耦合 AgentsView 的内部 JSON 细节。
@@ -30,9 +30,14 @@ const client = new CaSessionSourceClient({
   baseUrl: "http://127.0.0.1:8080"
 });
 
+const version = await client.getVersion();
+const health = await client.getHealth();
 const page = await client.listSessions({ limit: 20 });
 const session = await client.getSession(page.sessions[0]!.id);
 const messages = await client.getMessages(session.id, { from: 0, limit: 50 });
+
+console.log(version.buildDate);
+console.log(health.eventStreamAvailable);
 
 const sub = client.watchEvents(async (event) => {
   if (event.type === "message.appended" && event.sessionId) {

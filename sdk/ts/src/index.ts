@@ -31,6 +31,7 @@ export type {
   Session,
   SessionFilter,
   SessionPage,
+  SourceHealth,
   SessionTranscriptHistoryPage,
   SessionTranscriptEventResult,
   SessionTranscriptMessageSync,
@@ -38,6 +39,7 @@ export type {
   SessionTranscriptSourceError,
   SourceEvent,
   SourceEventType,
+  SourceVersion,
   ToolCall,
   WatchEventsOptions,
 } from "./types.ts";

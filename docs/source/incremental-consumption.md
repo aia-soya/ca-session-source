@@ -89,7 +89,7 @@ M5 期望消费方具备幂等 merge 能力。
 
 ## 分页语义
 
-M5 当前消息读取底座仍是现有 `/api/v1/sessions/{id}/messages`：
+当前消息读取底座是稳定的 `/api/source/v1/sessions/{id}/messages`：
 
 - 正向增量读取依赖 `from + direction=asc`
 - 向前补历史依赖 `beforeOrdinal - 1 + direction=desc`
@@ -107,7 +107,7 @@ M5 当前消息读取底座仍是现有 `/api/v1/sessions/{id}/messages`：
 
 - 原始 message page 仍是 ordinal-window 语义
 - `hasMore` 已在 SDK helper 的历史翻页结果中稳定暴露
-- 真正版本化的 source REST cursor contract 留给后续 M6 `/api/source/v1/*`
+- 当前 source REST 仍保持 ordinal-window 语义；若后续需要 cursor contract，再在 source 协议内显式扩展
 
 ## Unknown Event Type
 

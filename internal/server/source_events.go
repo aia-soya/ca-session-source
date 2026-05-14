@@ -191,7 +191,7 @@ func (s *Server) handleSourceEvents(
 ) {
 	if s.engine == nil || s.broadcaster == nil || s.sourceEvents == nil {
 		w.Header().Set("Retry-After", "300")
-		writeError(w, http.StatusServiceUnavailable,
+		writeSourceError(w, http.StatusServiceUnavailable,
 			"source events not available in this mode")
 		return
 	}
@@ -199,7 +199,7 @@ func (s *Server) handleSourceEvents(
 	events, unsub, err := s.sourceEvents.Subscribe()
 	if err != nil {
 		w.Header().Set("Retry-After", "300")
-		writeError(w, http.StatusServiceUnavailable, err.Error())
+		writeSourceError(w, http.StatusServiceUnavailable, err.Error())
 		return
 	}
 	defer unsub()

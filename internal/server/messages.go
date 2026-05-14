@@ -2,9 +2,6 @@ package server
 
 import (
 	"net/http"
-
-	dbpkg "github.com/wesm/agentsview/internal/db"
-	"github.com/wesm/agentsview/internal/service"
 )
 
 func (s *Server) handleGetMessages(
@@ -12,34 +9,12 @@ func (s *Server) handleGetMessages(
 ) {
 	sessionID := r.PathValue("id")
 
-	limit, ok := parseIntParam(w, r, "limit")
+	params, ok := parseMessageListParams(w, r, writeError)
 	if !ok {
 		return
 	}
-	limit = clampLimit(limit, dbpkg.DefaultMessageLimit, dbpkg.MaxMessageLimit)
 
-	direction := r.URL.Query().Get("direction")
-	switch direction {
-	case "", "asc", "desc":
-	default:
-		writeError(w, http.StatusBadRequest,
-			"invalid direction: must be asc or desc")
-		return
-	}
-
-	filter := service.MessageFilter{
-		Limit:     limit,
-		Direction: direction,
-	}
-	if r.URL.Query().Get("from") != "" {
-		from, ok := parseIntParam(w, r, "from")
-		if !ok {
-			return
-		}
-		filter.From = &from
-	}
-
-	list, err := s.sessions.Messages(r.Context(), sessionID, filter)
+	list, err := s.sessions.Messages(r.Context(), sessionID, params.serviceFilter())
 	if err != nil {
 		if handleContextError(w, err) {
 			return

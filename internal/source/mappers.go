@@ -55,13 +55,14 @@ func mapMessage(m db.Message) Message {
 
 func mapToolCall(call db.ToolCall) ToolCall {
 	return ToolCall{
-		ToolName:          call.ToolName,
-		Category:          call.Category,
-		ToolUseID:         call.ToolUseID,
-		InputJSON:         call.InputJSON,
-		SkillName:         call.SkillName,
-		ResultContent:     call.ResultContent,
-		SubagentSessionID: call.SubagentSessionID,
+		ToolName:            call.ToolName,
+		Category:            call.Category,
+		ToolUseID:           call.ToolUseID,
+		InputJSON:           call.InputJSON,
+		SkillName:           call.SkillName,
+		ResultContentLength: call.ResultContentLength,
+		ResultContent:       call.ResultContent,
+		SubagentSessionID:   call.SubagentSessionID,
 	}
 }
 

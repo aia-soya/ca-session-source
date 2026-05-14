@@ -78,6 +78,9 @@ describe("published type entry points", () => {
       "export interface SourceEvent {",
       "schemaVersion: string;",
       "messageOrdinal?: number",
+      "export interface SourceVersion {",
+      'status: "ok";',
+      "eventStreamAvailable: boolean;",
       "export interface WatchEventsOptions {",
       "onError?:",
       "export interface CaSessionSourceClientOptions {",
@@ -166,6 +169,7 @@ describe("published type entry points", () => {
   test("src/client modules preserve mapper and transport seams", () => {
     const clientSource = read("src/client.ts");
     const mapperSource = read("src/client-mappers.ts");
+    const payloadSource = read("src/client-payloads.ts");
     const transportSource = read("src/client-transport.ts");
 
     for (const snippet of [
@@ -177,6 +181,8 @@ describe("published type entry points", () => {
       "async getMessages(",
       "): Promise<MessagePage> {",
       "async getToolCalls(sessionId: string): Promise<ToolCall[]> {",
+      "async getVersion(): Promise<SourceVersion> {",
+      "async getHealth(): Promise<SourceHealth> {",
       "private async fetchJSON<T>(",
     ]) {
       assert.match(
@@ -187,17 +193,33 @@ describe("published type entry points", () => {
     }
 
     for (const snippet of [
-      "export interface RawSession {",
-      "export interface RawMessage {",
-      "export interface RawToolCallPage {",
-      "export function mapSessionPage(raw: RawSessionPage): SessionPage {",
-      "export function mapMessagePage(raw: RawMessagePage): MessagePage {",
-      "export function mapToolCallPage(raw: RawToolCallPage): ToolCall[] {",
+      'from "./client-payloads.ts";',
+      "export function mapSessionPage(raw: SourceSessionPageEnvelope): SessionPage {",
+      "export function mapMessagePage(raw: SourceMessagePageEnvelope): MessagePage {",
+      "export function mapSourceVersion(raw: SourceVersionEnvelope): SourceVersion {",
+      "export function mapSourceHealth(raw: SourceHealthEnvelope): SourceHealth {",
+      "export function mapToolCallPage(raw: SourceToolCallsEnvelope): ToolCall[] {",
+      "export function mapSession(raw: Session): Session {",
+      "export function mapMessage(raw: Message): Message {",
     ]) {
       assert.match(
         mapperSource,
         new RegExp(escapeRegExp(snippet)),
         `missing client mapper snippet: ${snippet}`,
+      );
+    }
+
+    for (const snippet of [
+      "export interface SourceSessionPageEnvelope {",
+      "export interface SourceMessagePageEnvelope {",
+      "export interface SourceToolCallsEnvelope {",
+      "export type SourceVersionEnvelope = SourceVersion;",
+      "export type SourceHealthEnvelope = SourceHealth;",
+    ]) {
+      assert.match(
+        payloadSource,
+        new RegExp(escapeRegExp(snippet)),
+        `missing client payload snippet: ${snippet}`,
       );
     }
 

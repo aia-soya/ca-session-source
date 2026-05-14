@@ -7,22 +7,27 @@ import type {
   Session,
   SessionFilter,
   SessionPage,
+  SourceHealth,
   SourceEvent,
+  SourceVersion,
   ToolCall,
   WatchEventsOptions,
 } from "./types.ts";
 import {
+  mapSourceHealth,
+  mapSourceVersion,
   mapMessagePage,
   mapSession,
   mapSessionPage,
   mapToolCallPage,
 } from "./client-mappers.ts";
 import type {
-  RawMessagePage,
-  RawSession,
-  RawSessionPage,
-  RawToolCallPage,
-} from "./client-mappers.ts";
+  SourceHealthEnvelope,
+  SourceMessagePageEnvelope,
+  SourceSessionPageEnvelope,
+  SourceToolCallsEnvelope,
+  SourceVersionEnvelope,
+} from "./client-payloads.ts";
 import {
   appendQuery,
   ensureTrailingSlash,
@@ -34,7 +39,7 @@ import {
 import type { QueryValue } from "./client-transport.ts";
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:8080";
-const DEFAULT_REST_BASE_PATH = "api/v1/";
+const DEFAULT_REST_BASE_PATH = "api/source/v1/";
 const DEFAULT_SOURCE_EVENTS_PATH = "api/source/v1/events";
 
 export class CaSessionSourceClient {
@@ -49,7 +54,7 @@ export class CaSessionSourceClient {
     this.baseUrl = ensureTrailingSlash(options.baseUrl ?? DEFAULT_BASE_URL);
     this.restBaseUrl = joinBaseUrl(
       this.baseUrl,
-      options.restBasePath ?? DEFAULT_REST_BASE_PATH,
+      DEFAULT_REST_BASE_PATH,
     );
     this.sourceEventsUrl = joinResourceUrl(
       this.baseUrl,
@@ -61,7 +66,7 @@ export class CaSessionSourceClient {
   }
 
   async listSessions(filter: SessionFilter = {}): Promise<SessionPage> {
-    const raw = await this.fetchJSON<RawSessionPage>("sessions", {
+    const raw = await this.fetchJSON<SourceSessionPageEnvelope>("sessions", {
       project: filter.project,
       exclude_project: filter.excludeProject,
       machine: filter.machine,
@@ -88,14 +93,14 @@ export class CaSessionSourceClient {
   }
 
   async getSession(sessionId: string): Promise<Session> {
-    return mapSession(await this.fetchJSON<RawSession>(`sessions/${sessionId}`));
+    return mapSession(await this.fetchJSON<Session>(`sessions/${sessionId}`));
   }
 
   async getMessages(
     sessionId: string,
     options: MessageOptions = {},
   ): Promise<MessagePage> {
-    const raw = await this.fetchJSON<RawMessagePage>(
+    const raw = await this.fetchJSON<SourceMessagePageEnvelope>(
       `sessions/${sessionId}/messages`,
       {
         from: options.from,
@@ -108,10 +113,22 @@ export class CaSessionSourceClient {
   }
 
   async getToolCalls(sessionId: string): Promise<ToolCall[]> {
-    const raw = await this.fetchJSON<RawToolCallPage>(
+    const raw = await this.fetchJSON<SourceToolCallsEnvelope>(
       `sessions/${sessionId}/tool-calls`,
     );
     return mapToolCallPage(raw);
+  }
+
+  async getVersion(): Promise<SourceVersion> {
+    return mapSourceVersion(
+      await this.fetchJSON<SourceVersionEnvelope>("version"),
+    );
+  }
+
+  async getHealth(): Promise<SourceHealth> {
+    return mapSourceHealth(
+      await this.fetchJSON<SourceHealthEnvelope>("health"),
+    );
   }
 
   watchEvents(

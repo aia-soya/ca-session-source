@@ -78,6 +78,21 @@ export interface SessionPage {
   total: number;
 }
 
+export interface SourceVersion {
+  schemaVersion: string;
+  version: string;
+  commit: string;
+  buildDate: string;
+  readOnly?: boolean | undefined;
+}
+
+export interface SourceHealth {
+  schemaVersion: string;
+  status: "ok";
+  readOnly?: boolean | undefined;
+  eventStreamAvailable: boolean;
+}
+
 export interface MessagePage {
   messages: Message[];
   count: number;
@@ -132,7 +147,6 @@ export interface CaSessionSourceClientOptions {
   authToken?: string | undefined;
   fetch?: typeof fetch | undefined;
   headers?: HeadersInit | undefined;
-  restBasePath?: string | undefined;
   sourceEventsPath?: string | undefined;
 }
 

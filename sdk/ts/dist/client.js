@@ -1,5 +1,7 @@
 import { watchSourceEvents } from "./events.js";
 import {
+  mapSourceHealth,
+  mapSourceVersion,
   mapMessagePage,
   mapSession,
   mapSessionPage,
@@ -14,7 +16,7 @@ import {
   stripLeadingSlash
 } from "./client-transport.js";
 const DEFAULT_BASE_URL = "http://127.0.0.1:8080";
-const DEFAULT_REST_BASE_PATH = "api/v1/";
+const DEFAULT_REST_BASE_PATH = "api/source/v1/";
 const DEFAULT_SOURCE_EVENTS_PATH = "api/source/v1/events";
 export class CaSessionSourceClient {
   baseUrl;
@@ -27,7 +29,7 @@ export class CaSessionSourceClient {
     this.baseUrl = ensureTrailingSlash(options.baseUrl ?? DEFAULT_BASE_URL);
     this.restBaseUrl = joinBaseUrl(
       this.baseUrl,
-      options.restBasePath ?? DEFAULT_REST_BASE_PATH
+      DEFAULT_REST_BASE_PATH
     );
     this.sourceEventsUrl = joinResourceUrl(
       this.baseUrl,
@@ -81,6 +83,16 @@ export class CaSessionSourceClient {
       `sessions/${sessionId}/tool-calls`
     );
     return mapToolCallPage(raw);
+  }
+  async getVersion() {
+    return mapSourceVersion(
+      await this.fetchJSON("version")
+    );
+  }
+  async getHealth() {
+    return mapSourceHealth(
+      await this.fetchJSON("health")
+    );
   }
   watchEvents(onEvent, options = {}) {
     return watchSourceEvents({
