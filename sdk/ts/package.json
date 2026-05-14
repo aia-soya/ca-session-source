@@ -1,6 +1,6 @@
 {
   "name": "@aia/ca-session-source-client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TypeScript SDK for the ca-session-source HTTP and SSE contracts.",
   "type": "module",
   "private": true,

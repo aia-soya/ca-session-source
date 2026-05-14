@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: ca-session-source Source API
-  version: 0.1.0
+  version: 0.1.1
   description: |
     稳定的 `ca-session-source` HTTP / SSE facade。
 
