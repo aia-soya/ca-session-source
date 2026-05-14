@@ -1,10 +1,10 @@
 # Source Engineering
 
-本文收敛 `ca-session-source` 在 M7 阶段的工程化、测试与发布入口，目标是让 source patch 在 fork 内可重复验证、可被固定版本消费、可随 upstream 同步持续维护。
+本文收敛 `ca-session-source` 的工程化、测试与发布入口，目标是让 source patch 在 fork 内可重复验证、可被固定版本消费、可随 upstream 同步持续维护。
 
 ## 测试矩阵
 
-推荐按以下顺序执行：
+按以下顺序执行：
 
 ```bash
 make source-test
@@ -31,7 +31,7 @@ make source-ci
 
 ## Fixtures
 
-M7 固定使用仓内 fixture，不依赖开发机真实 `~/.codex` 或 `~/.claude` 目录。
+固定使用仓内 fixture，不依赖开发机真实 `~/.codex` 或 `~/.claude` 目录。
 
 当前最小 fixture 位于：
 
@@ -78,7 +78,7 @@ make source-ci
 
 当前短期发布策略保持与计划一致：先确保 SDK 可被 workspace、Git URL 或 tarball 固定消费。
 
-推荐流程：
+当前发布流程：
 
 ```bash
 make source-sdk-install
@@ -93,19 +93,19 @@ make source-sdk-pack
 
 - 仓内 smoke 验证
 - 其它 workspace 通过 tarball 固定版本接入
-- 后续 Git tag 发布前的预发检查
+- Git tag 发布前的预发检查
 
-当前不要求立即发布到 npm，但每次准备对外消费前都应至少完成上述四步。
+当前不直接发布到 npm；每次准备对外消费前都应至少完成上述步骤。
 
 当前 `sdk/ts/package.json` 仍保留 `private: true`，这是有意为之：
 
-- 当前阶段默认发布策略仍是 workspace / Git URL / tarball
+- 默认发布策略仍是 workspace / Git URL / tarball
 - `source-sdk-release-check` 会在 `private: true` 下明确报告“跳过 `npm publish --dry-run`”
 - 当后续准备真正切到 npm 发布时，再移除 `private` 并让该检查自动升级到 dry-run
 
 ## Upstream 同步
 
-建议每周或每两周同步一次 `upstream/main`，并在同步后至少执行：
+每次同步 `upstream/main` 后，至少执行：
 
 ```bash
 make test

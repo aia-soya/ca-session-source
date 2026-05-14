@@ -13,7 +13,7 @@
 
 ## 分支目标状态
 
-推荐分支关系：
+分支关系：
 
 ```text
 upstream/main         # 上游权威基线
@@ -37,7 +37,7 @@ feature/source-*      # 功能开发分支
 - 已知的高风险改动点有明确负责人。
 - 本地能够访问 `upstream` remote。
 
-建议命令：
+常用命令：
 
 ```bash
 git status --short
@@ -45,7 +45,7 @@ git remote -v
 git branch -vv
 ```
 
-## 推荐同步流程
+## 同步流程
 
 如果 `origin/main` 作为 fork 镜像分支：
 
@@ -64,7 +64,7 @@ git switch ca-session-source
 git rebase main
 ```
 
-如果团队更偏好 merge，也可以：
+如需采用 merge，也可以：
 
 ```bash
 git switch ca-session-source
@@ -203,13 +203,3 @@ cd frontend && npm run test
 - fork patch 面已在 [fork-patch-map.md](./fork-patch-map.md) 中更新
 - 相关 smoke tests 已执行，结果已记录
 - `STATUS.md` 已更新同步结论、风险与下一步
-
-## 当前已验证的 M0 基线
-
-截至 `2026-05-13`，本仓已验证：
-
-- `upstream/main` 已 fetch 到本地
-- `upstream/main`、`origin/main` 当前同为 `c8bb17c067ed27b9d71e4eeea6b2abd8ce3e7398`
-- 当前 `HEAD` 相对 `upstream/main` 仅领先 `3` 个文档基线提交
-
-这说明本仓在进入代码阶段前，仍处于低风险的 fork 基线状态。

@@ -35,7 +35,7 @@ M6：Source API 稳定化
 M7：工程化、测试与发布
 ```
 
-建议先做 **M0 ~ M4**，形成可用闭环；M5/M6 在消费闭环验证后再稳定化。
+当前 `M0 ~ M7` 已完成；本文保留里程碑定义、任务边界与验收语义，真实进展与后续观察点以 [`STATUS.md`](../../STATUS.md) 为准。
 
 ---
 
@@ -299,7 +299,7 @@ AgentsView internal event
   -> SourceEvent
 ```
 
-首期可以保守处理：
+当前实现策略：
 
 ```text
 收到 session 更新事件
@@ -309,50 +309,16 @@ AgentsView internal event
 
 ### SRC-022：新增 source events endpoint
 
-两种选择：
-
-#### 方案 A：复用 `/api/v1/events`
-
-SDK 直接消费现有 events，再在 SDK 里转换。
-
-优点：
-
-```text
-改动最少
-upstream merge 成本最低
-```
-
-缺点：
-
-```text
-协议不够稳定
-消费方依赖 AgentsView 内部事件形态
-```
-
-#### 方案 B：新增 `/api/source/v1/events`
-
-推荐作为 M2 目标。
-
 ```text
 GET /api/source/v1/events
 ```
 
-优点：
+实现约束：
 
 ```text
-source 协议稳定
-后续可独立演化
+对外暴露稳定 source 协议
+内部继续复用 AgentsView broadcaster
 ```
-
-缺点：
-
-```text
-需要新增 server route
-```
-
-建议：
-
-> 实现 B，但内部复用 AgentsView broadcaster。
 
 ### SRC-023：事件测试
 
@@ -398,7 +364,7 @@ sdk/ts/
     errors.ts
 ```
 
-包名建议：
+包名：
 
 ```text
 @aia/ca-session-source-client
@@ -418,7 +384,7 @@ class CaSessionSourceClient {
 
 ### SRC-032：实现 daemon / server discovery
 
-首期简单配置 baseUrl：
+当前采用显式 baseUrl：
 
 ```ts
 new CaSessionSourceClient({
@@ -426,7 +392,7 @@ new CaSessionSourceClient({
 })
 ```
 
-后续再支持 state file discovery。
+state file discovery 不在当前计划内。
 
 ### SRC-033：SDK 测试
 
@@ -438,12 +404,12 @@ getMessages
 watchEvents
 SSE reconnect
 error handling
-version mismatch，后置
+schema/version negotiation，待首个服役版本后再评估
 ```
 
 ### SRC-034：SDK 发布准备
 
-不一定首期发布到 npm，但要能被其它 workspace 或 Git URL / tarball 使用。
+当前不要求直接发布到 npm，但需要能被其它 workspace 或 Git URL / tarball 使用。
 
 ```text
 pnpm pack
@@ -550,7 +516,7 @@ error handling 不足
 
 稳定消息锚点、增量消费与 source DTO 的兼容语义。
 
-首期采用：
+当前采用：
 
 ```text
 sessionId + messageOrdinal
@@ -614,7 +580,7 @@ MessagePage nextCursor / hasMore
 SourceEvent messageOrdinal
 ```
 
-### SRC-053：兼容性测试
+### SRC-053：合同容错测试
 
 覆盖：
 
@@ -682,16 +648,15 @@ docs/source/openapi.yaml
 }
 ```
 
-### SRC-063：兼容性测试
+### SRC-063：协议容错测试
 
 覆盖：
 
 ```text
-旧 SDK 调新 server
-新 SDK 调旧 server
 缺失字段
 新增字段
 unknown event type
+error envelope / schemaVersion 稳定性
 ```
 
 ## 验收标准
@@ -705,8 +670,6 @@ unknown event type
 ---
 
 # M7：工程化、测试与发布
-
-当前状态：已完成（2026-05-14）。
 
 ## 目标
 
@@ -764,7 +727,7 @@ OpenAPI artifact
 
 ### SRC-074：Upstream sync 流程
 
-建议固定节奏：
+建议节奏：
 
 ```text
 每周或每两周同步 upstream/main
@@ -795,185 +758,7 @@ OpenAPI artifact
 
 ---
 
-# 推荐任务拆分清单
+## 8. 说明
 
-## 第一批：必须先做
-
-```text
-SRC-001 fork 基线
-SRC-002 fork patch map
-SRC-003 upstream merge checklist
-SRC-010 SourceService 接口
-SRC-011 Source DTO
-SRC-012 AgentsViewStoreSourceService
-SRC-020 Source Event Schema
-SRC-030 TypeScript SDK scaffold
-SRC-031 SDK 基础 Client
-```
-
-目标：形成内部 source facade + SDK 基础读能力。
-
----
-
-## 第二批：打通事件闭环
-
-```text
-SRC-021 Broadcaster adapter
-SRC-022 /api/source/v1/events
-SRC-023 SSE tests
-SRC-032 SDK server discovery / baseUrl config
-SRC-033 SDK tests
-```
-
-目标：消费方能监听 session 更新。
-
----
-
-## 第三批：消费闭环验证
-
-```text
-SRC-040 SDK smoke harness
-SRC-041 incremental fetch smoke
-SRC-042 snapshot fetch smoke
-SRC-043 SDK feedback fixes
-```
-
-目标：证明复用路径成立。
-
----
-
-## 第四批：消息锚点与消费语义
-
-```text
-SRC-050 message anchor policy
-SRC-051 incremental consumption policy
-SRC-052 DTO / pagination semantics
-SRC-053 compatibility tests
-```
-
-目标：消息定位与增量消费边界稳定。
-
----
-
-## 第五批：协议稳定化
-
-```text
-SRC-060 /api/source/v1 sessions/messages/tool-calls
-SRC-061 OpenAPI
-SRC-062 schemaVersion
-SRC-063 compatibility tests
-```
-
-目标：形成可长期依赖的 source protocol。
-
----
-
-# 建议优先级
-
-## P0
-
-```text
-Fork 可维护性
-SourceService
-SDK list/get/watch
-SDK smoke harness
-```
-
-## P1
-
-```text
-source event facade
-/api/source/v1
-message.appended 精细化补强
-message anchor policy
-```
-
-## P2
-
-```text
-OpenAPI
-sourceUuid anchor 强化
-daemon discovery
-独立 headless mode
-```
-
----
-
-# 最小可用闭环
-
-最小闭环建议压缩为 4 个任务：
-
-```text
-1. Fork baseline + patch map
-2. SourceService + SDK list/get messages
-3. SSE event + SDK watchEvents
-4. SDK smoke harness
-```
-
-完成后即可验证核心假设：
-
-> 消费方不自己监听 CA 本地文件，也能持续消费 CA T/S 变化。
-
----
-
-# 关键风险与控制
-
-## 风险 1：改动 AgentsView 核心导致 upstream 难合
-
-控制：
-
-```text
-新增目录优先
-核心文件只做 wiring
-所有修改写入 patch map
-```
-
-## 风险 2：事件粒度不够
-
-控制：
-
-```text
-对外协议保持 session.updated + message.appended
-消费方收到事件后仍可主动拉取 messages 做兜底
-底层 broadcaster 粒度不足时在 facade 层补齐 message.appended
-```
-
-## 风险 3：SDK 过早稳定导致协议僵化
-
-控制：
-
-```text
-先 smoke
-后 /api/source/v1
-再 OpenAPI
-```
-
-## 风险 4：消息锚点与消费语义混淆
-
-控制：
-
-```text
-MVP 明确使用 sessionId + messageOrdinal
-DTO 预留 sourceUuid / sourceType
-SDK 增量消费策略要求幂等
-source 层不引入上层业务模型
-```
-
-## 风险 5：多个客户端同时连接服务
-
-MVP 可以先不解决，使用显式 baseUrl。
-
-后续再做：
-
-```text
-state file
-health/version endpoint
-auto attach
-single instance lock
-```
-
----
-
-# 一句话研发路线
-
-> **先把 AgentsView fork 稳住；再在其上加一层极薄的 Source Facade 和 TypeScript SDK；用 source API / SDK smoke 验证消费闭环；随后收敛消息锚点、增量消费语义与 `/api/source/v1` 版本化协议。**
+- 本文保留里程碑设计与验收语义，供后续演进或回顾时对照。
+- 执行顺序、阶段拆分、优先级与最小闭环等实施期说明已不再单独维护；若后续出现新增里程碑或重排计划，以增量方式更新本文。

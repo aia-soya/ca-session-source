@@ -31,7 +31,7 @@ AgentsView 本身已经具备本地优先、自动发现多种 coding agent sess
 
 ## 3. 非目标
 
-首期不做：
+本仓不做：
 
 1. 不重写 AgentsView parser。
 2. 不重写 AgentsView sync engine。
@@ -48,7 +48,7 @@ AgentsView 本身已经具备本地优先、自动发现多种 coding agent sess
 
 ### 4.1 Fork First
 
-ca-session-source 首期作为 AgentsView fork 的增强能力存在。
+ca-session-source 当前作为 AgentsView fork 的增强能力存在。
 
 ```text
 agentsview fork
@@ -57,14 +57,14 @@ agentsview fork
   ├── existing SQLite
   ├── existing REST / SSE
   ├── existing frontend
-  ├── source API compatibility layer
+  ├── source API facade
   ├── source facade
   └── source SDK
 ```
 
 ### 4.2 最小侵入
 
-首期避免修改：
+默认避免修改：
 
 ```text
 internal/parser/*
@@ -81,7 +81,6 @@ internal/source/
 internal/sourceapi/
 sdk/ts/
 docs/source/
-frontend source debug page，可选
 ```
 
 ### 4.3 复用优先
@@ -135,7 +134,7 @@ AgentsView Store / Service
 
 Source API 是消费方长期依赖的 HTTP / SSE contract。
 
-首期可以复用 `/api/v1/*`；当协议需要稳定时，新增 `/api/source/v1/*` facade。
+当前对外稳定消费契约为 `/api/source/v1/*` facade；`/api/v1/*` 继续作为 AgentsView 原生 API 保留。
 
 ### 5.3 TypeScript SDK
 
@@ -158,9 +157,7 @@ SSE transport 可以额外发送 keepalive，但 keepalive 不属于 SourceEvent
 
 ## 6. 产品形态
 
-### 6.1 首期形态
-
-首期不是独立新仓库，而是 AgentsView fork 内的增强模块。
+当前产品形态是 AgentsView fork 内的增强模块：
 
 ```text
 agentsview fork
@@ -174,21 +171,6 @@ agentsview fork
   ├── sdk/ts                 # 新增：TypeScript client
   └── docs/source            # 新增：source protocol docs
 ```
-
-### 6.2 未来形态
-
-等接口稳定后，可再拆为独立 module / repo。
-
-```text
-Phase later:
-  ca-session-source-core
-  ca-session-source-client
-  ca-sessiond
-```
-
-但首期不做拆仓，避免增加 upstream merge 成本。
-
----
 
 ## 7. 核心概念
 
@@ -260,7 +242,7 @@ type SourceMessage = {
 
 AgentsView 的 messages 表已经以 `(session_id, ordinal)` 作为 session 内 message 顺序锚点，并保存 thinking、tool use、model、token usage、source_uuid 等字段。
 
-首期消息锚点采用 `sessionId + messageOrdinal`，并在 DTO 中保留 `sourceUuid`、`sourceType` 等字段以便后续增强。
+当前消息锚点采用 `sessionId + messageOrdinal`，并在 DTO 中保留 `sourceUuid`、`sourceType` 等字段作为增强元信息。
 
 ### 7.4 ToolCall
 
@@ -374,7 +356,7 @@ POST /api/v1/sync
 POST /api/v1/resync
 ```
 
-新增 source compatibility API 可选，作为稳定 facade：
+当前稳定 source facade 为：
 
 ```http
 GET /api/source/v1/sessions
@@ -382,12 +364,7 @@ GET /api/source/v1/sessions/{id}
 GET /api/source/v1/sessions/{id}/messages
 GET /api/source/v1/sessions/{id}/tool-calls
 GET /api/source/v1/events
-POST /api/source/v1/sync
 ```
-
-首期原则：
-
-> 能复用 `/api/v1/*` 就不新增；只有消费方需要稳定协议时，才加 `/api/source/v1/*` facade。
 
 ### 8.5 SDK
 
@@ -439,7 +416,7 @@ health/version
 
 ### 10.1 不移动 upstream 核心代码
 
-首期不移动：
+默认不移动：
 
 ```text
 internal/parser
@@ -458,7 +435,6 @@ internal/source/
 internal/sourceapi/
 sdk/ts/
 docs/source/
-frontend/src/source-debug/，可选
 ```
 
 ### 10.3 修改点保持薄
@@ -482,7 +458,6 @@ cmd/agentsview/main.go
 internal/server/server.go
 internal/config/*
 internal/db schema migration impact
-frontend route registration，可选
 ```
 
 ---
@@ -500,26 +475,6 @@ SourceEvent schema
 message.appended event
 TypeScript SDK
 SSE event consumption
-```
-
-### Should Have
-
-```text
-/api/source/v1 facade
-source health/version endpoint
-SDK daemon discovery
-source event schema version
-source debug page
-```
-
-### Could Have
-
-```text
-独立 ca-sessiond mode
-headless-only serve mode
-Go SDK
-OpenAPI generated client
-source debug page
 ```
 
 ### 不在 MVP 范围
@@ -555,93 +510,7 @@ MVP 满足：
 
 ---
 
-## 13. 推荐里程碑
-
-### M0：基线与协议
-
-交付：
-
-```text
-docs/source/prd.md
-docs/source/source-model.md
-docs/source/events.md
-SDK API 草案
-fork patch map
-```
-
-### M1：Source Facade
-
-交付：
-
-```text
-internal/source/
-SourceService interface
-复用 db.Store / service.SessionService
-source DTO
-source event model
-```
-
-### M2：Source Event 与 SSE Adapter
-
-交付：
-
-```text
-SourceEvent schema
-Broadcaster adapter
-/api/source/v1/events，可选
-message.appended 语义补齐
-```
-
-### M3：TypeScript SDK
-
-交付：
-
-```text
-sdk/ts
-listSessions()
-getSession()
-getMessages()
-getToolCalls()
-watchEvents()
-```
-
-### M4：消费闭环验证
-
-交付：
-
-```text
-SDK smoke harness
-event -> fetch incremental messages flow
-snapshot fetch flow
-feedback fixes
-```
-
-### M5：消息锚点与消费语义收敛
-
-交付：
-
-```text
-sessionId + messageOrdinal anchor policy
-sourceUuid / sourceType 预留策略
-增量消费说明
-兼容性测试
-```
-
-### M6：Source API 稳定化
-
-交付：
-
-```text
-/api/source/v1，可选
-schemaVersion
-OpenAPI
-兼容性测试
-upstream merge checklist
-```
-
----
-
-## 14. 成功指标
+## 13. 成功指标
 
 短期：
 

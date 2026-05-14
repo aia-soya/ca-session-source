@@ -1,6 +1,6 @@
 # Incremental Consumption Policy
 
-本文定义 `ca-session-source` 在 M5 阶段推荐的 transcript 增量消费语义。
+本文定义 `ca-session-source` 当前的 transcript 增量消费语义。
 
 ## 核心状态
 
@@ -19,7 +19,7 @@ lastSeenOrdinal
 
 ## 事件消费策略
 
-推荐按以下优先级处理 SourceEvent：
+按以下优先级处理 SourceEvent：
 
 ### 1. `message.appended` fast path
 
@@ -30,7 +30,7 @@ type = message.appended
 messageOrdinal = N
 ```
 
-则优先按 `from = N` 发起增量拉取。
+则按 `from = N` 发起增量拉取。
 
 原因：
 
@@ -63,7 +63,7 @@ from = lastSeenOrdinal + 1
 
 SSE 断开重连后，不应假设事件绝对连续。
 
-推荐策略：
+处理策略：
 
 1. 保留本地 `lastSeenOrdinal`
 2. 重连后继续监听事件
@@ -80,7 +80,7 @@ SSE 断开重连后，不应假设事件绝对连续。
 - 先收到 `session.updated`，后收到相同区间的 `message.appended`
 - reconnect 后重新补拉到已经落地的消息
 
-M5 期望消费方具备幂等 merge 能力。
+消费方应具备幂等 merge 能力。
 
 当前 SDK 的 `SessionMessageBuffer` 以 ordinal 为键缓存消息，因此：
 
@@ -94,9 +94,9 @@ M5 期望消费方具备幂等 merge 能力。
 - 正向增量读取依赖 `from + direction=asc`
 - 向前补历史依赖 `beforeOrdinal - 1 + direction=desc`
 
-因此 M5 现阶段不对原始 `MessagePage` 承诺稳定的 cursor contract。
+当前不对原始 `MessagePage` 承诺稳定的 cursor contract。
 
-推荐做法：
+当前做法：
 
 - 把 `ordinal` 视为历史窗口边界
 - 正向增量读取使用 `from`

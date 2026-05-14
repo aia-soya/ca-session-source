@@ -2,22 +2,10 @@
 
 本文记录 `ca-session-source` 相对 upstream AgentsView 的 fork patch 面，目标是让改动可枚举、可审计、可在同步 upstream 时快速定位风险。
 
-## 基线快照
+## 维护说明
 
-快照时间：`2026-05-13`
-
-已验证事实：
-
-- `upstream` remote 已配置为 `https://github.com/wesm/agentsview.git`
-- `origin` remote 已配置为 `https://github.com/aia-soya/ca-session-source.git`
-- `upstream/main`、`origin/main` 与 `merge-base(HEAD, upstream/main)` 当前都指向 `c8bb17c067ed27b9d71e4eeea6b2abd8ce3e7398`
-- 当前 `HEAD` 为 `df8836d08b10c66f93b5b3231b109b12ac07158a`
-- 当前 `HEAD` 相对 `upstream/main` 领先 `3` 个提交，且这些提交均为 `ca-session-source` 文档基线收敛
-
-说明：
-
-- 这反映的是 M0 完成时的起始基线；自 M1 起已经开始引入 source facade 代码层补丁。
-- 后续每当新增代码或薄改 upstream wiring，必须更新本文。
+- 本文记录 fork patch 面与允许改动边界，不追踪瞬时 `HEAD` 提交号。
+- 当新增代码或薄改 upstream wiring 时，必须更新本文。
 
 ## 当前已审计补丁
 
@@ -43,7 +31,6 @@
 - `internal/sourceapi/`
 - `sdk/ts/`
 - `docs/source/`
-- `frontend/src/source-debug/`（可选）
 
 这些目录之外的改动，应先回答两个问题：
 
@@ -60,11 +47,10 @@
 | `internal/server/server.go` | route registration、handler 挂载 | 不破坏既有 `/api/v1/*` 行为 |
 | `internal/config/*` | 配置扩展 | 只增不扭曲原配置语义 |
 | `Makefile` | source 相关构建/测试命令 | 保持原 AgentsView 命令可用 |
-| `frontend` 少量入口文件 | source debug 页面或 API client facade 接入 | 不重建 transcript browser |
 
 ## 默认禁止的 patch 面
 
-以下区域默认视为 upstream 核心，不应在首期主动改写：
+以下区域默认视为 upstream 核心，不应主动改写：
 
 - `internal/parser/*`
 - `internal/sync/*`
@@ -77,9 +63,9 @@
 - 必须在 `SPEC.md`、`PLAN.md` 或 `docs/cass` 权威文档中先说明原因。
 - 必须把改动面、替代方案与 merge 风险补充到本文。
 
-## 后续补丁登记格式
+## 补丁登记格式
 
-当开始进入代码阶段时，按以下格式补充：
+按以下格式补充：
 
 | 日期 | 类型 | 路径 | 归属里程碑 | 改动摘要 | merge 风险 | 验证方式 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -102,7 +88,7 @@
 | `2026-05-13` | `A` | `sdk/ts/src/client-mappers.ts` | `M5` | 拆出 raw DTO 与 source-oriented mapper，降低 client facade 耦合 | 低 | `npm test` |
 | `2026-05-13` | `A` | `sdk/ts/src/client-transport.ts` | `M5` | 拆出 HTTP/URL/error transport helper，避免 client facade 继续膨胀 | 低 | `npm test` |
 | `2026-05-13` | `M` | `sdk/ts/src/client.ts` | `M5` | 收敛为薄 client facade，组合 mapper 与 transport seam | 低 | `npm test` |
-| `2026-05-13` | `M` | `sdk/ts/test/client-contract.js` | `M5` | 补兼容性测试，覆盖缺失 sourceUuid、重复事件、fallback、分页边界与未知事件 | 低 | `npm test` |
+| `2026-05-13` | `M` | `sdk/ts/test/client-contract.js` | `M5` | 补合同容错测试，覆盖缺失 sourceUuid、重复事件、fallback、分页边界与未知事件 | 低 | `npm test` |
 | `2026-05-13` | `M` | `sdk/ts/test/dist-types.test.js` | `M5` | 收敛发布态类型契约，避免 dist 与源码导出漂移 | 低 | `npm test` |
 | `2026-05-13` | `M` | `sdk/ts/README.md` | `M5` | 同步 SDK 消费示例到显式 anchor 与分页语义 | 低 | 文档审阅 |
 | `2026-05-13` | `M` | `STATUS.md` | `M5` | 记录消息锚点与消费语义收敛进展 | 低 | 文档审阅 |

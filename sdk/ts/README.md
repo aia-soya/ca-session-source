@@ -2,14 +2,14 @@
 
 `ca-session-source` 的 TypeScript SDK。
 
-当前 M6 版本默认消费稳定的 source 协议：
+默认消费稳定的 source 协议：
 
 - 读取接口走 `GET /api/source/v1/sessions*`
 - 事件订阅走稳定的 `GET /api/source/v1/events`
 
 SDK 对外暴露 source-oriented 的 camelCase 类型，消费方不需要直接耦合 AgentsView 的内部 JSON 细节。
 
-当前 M5 的消息锚点策略为：
+当前消息锚点策略为：
 
 ```text
 sessionId + messageOrdinal
@@ -19,9 +19,9 @@ sessionId + messageOrdinal
 
 ## 安装方式
 
-当前包会发布由 `unbuild` 自动生成的 `dist/` 运行时代码与 `.d.ts` 声明入口，适合被 workspace、Git URL 或 tarball 直接引用。
+包会发布由 `unbuild` 自动生成的 `dist/` 运行时代码与 `.d.ts` 声明入口，适合被 workspace、Git URL 或 tarball 直接引用。
 
-当前 `package.json` 仍保留 `private: true`，表示现阶段默认仍按 tarball / workspace 集成使用，而不是直接发 npm registry。
+`package.json` 当前保留 `private: true`，默认按 tarball / workspace 集成使用，而不是直接发 npm registry。
 
 ## 用法
 
@@ -55,7 +55,7 @@ sub.close();
 await sub.closed;
 ```
 
-如果消费方想直接拿到“一步式 transcript watch”，可以优先使用 `watchSessionTranscript(...)`：
+直接使用一步式 transcript watch 时，优先使用 `watchSessionTranscript(...)`：
 
 ```ts
 import {
@@ -91,7 +91,7 @@ watched.close();
 await watched.closed;
 ```
 
-如果消费方想自己控制 watch 生命周期，也可以复用更底层的 transcript helper：
+需要自行控制 watch 生命周期时，可复用更底层的 transcript helper：
 
 ```ts
 import {
@@ -134,12 +134,12 @@ const anchor = latestMessage
 console.log(anchor);
 ```
 
-推荐消费语义：
+消费语义：
 
-- `message.appended` 作为 fast path，优先使用 `event.messageOrdinal` 发起补拉
+- `message.appended` 作为 fast path，使用 `event.messageOrdinal` 发起补拉
 - `session.updated` 作为 fallback，使用 `buffer.latestOrdinal + 1` 补拉
 - 对重复事件与 reconnect 补洞保持幂等，SDK `SessionMessageBuffer` 默认按 ordinal 去重
-- 原始 `getMessages(...)` 仍是 ordinal-window 语义；若需要稳定的历史翻页 `hasMore`，优先使用 transcript helper
+- 原始 `getMessages(...)` 保持 ordinal-window 语义；如需稳定的历史翻页 `hasMore`，使用 transcript helper
 
 ## 脚本
 
@@ -153,9 +153,9 @@ console.log(anchor);
 
 - package metadata（`license`、`repository`、`homepage`、`bugs`、`keywords`）
 - 发布清单中的 `README.md`、`LICENSE`、`dist`
-- 当前发布策略 gate
+- 发布策略 gate
 
-在 `private: true` 仍开启时，它会明确提示“跳过 `npm publish --dry-run`”，与当前 tarball-first 策略保持一致。
+在 `private: true` 开启时，它会明确提示“跳过 `npm publish --dry-run`”，与 tarball-first 策略保持一致。
 
 `npm run smoke` 会执行 [`sdk/ts/examples/smoke/run.js`](./examples/smoke/run.js)。
 它面向一个真实运行中的本地服务，验证：

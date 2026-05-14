@@ -1,10 +1,10 @@
 # Message Anchor Policy
 
-本文定义 `ca-session-source` 在 M5 阶段对消费方承诺的消息锚点策略。
+本文定义 `ca-session-source` 当前对消费方承诺的消息锚点策略。
 
-## MVP 锚点
+## 当前锚点
 
-首期稳定锚点固定为：
+当前稳定锚点固定为：
 
 ```text
 sessionId + messageOrdinal
@@ -24,7 +24,7 @@ sessionId + messageOrdinal
 
 ## 预留字段
 
-当前 source DTO 与 SDK 会继续透出以下保留字段，但它们在 M5 不作为主锚点：
+当前 source DTO 与 SDK 会继续透出以下保留字段，但它们不作为主锚点：
 
 ```text
 sourceUuid
@@ -40,7 +40,7 @@ sourceSubtype
 
 ## 稳定性边界
 
-M5 对外承诺的是“同一 session 内 ordinal 递增可用于增量消费”，而不是更强的跨源全局 message identity。
+当前对外承诺的是“同一 session 内 ordinal 递增可用于增量消费”，而不是更强的跨源全局 message identity。
 
 这意味着：
 
@@ -67,15 +67,15 @@ MVP 默认假设同一 session 的消息只追加、不重排。
 1. 保持 `sessionId + messageOrdinal` 继续可用，避免破坏现有消费方。
 2. 在 SDK 和 source API 中继续透出 `sourceUuid`。
 3. 将 `sourceUuid` 提升为增强锚点，而不是直接替换 ordinal。
-4. 若未来确需更强 identity，再定义版本化 anchor policy，而不是静默改写 M5 语义。
+4. 若未来确需更强 identity，再定义版本化 anchor policy，而不是静默改写当前语义。
 
 ## 当前 SDK 对应关系
 
-M5 后，SDK transcript helper 会显式暴露：
+当前 SDK transcript helper 会显式暴露：
 
 - `MessageAnchor`
 - `createMessageAnchor(message)`
 - `SessionMessageBuffer.latestAnchor`
 - snapshot / history page / event sync result 上的 `latestAnchor`
 
-这几个字段都遵循同一策略：MVP 必含 `sessionId + messageOrdinal`，其余 source 元信息按可用性附带。
+这几个字段都遵循同一策略：必含 `sessionId + messageOrdinal`，其余 source 元信息按可用性附带。

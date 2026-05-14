@@ -15,7 +15,7 @@
 
 ## SSE Endpoint
 
-M2 当前提供：
+当前提供：
 
 ```text
 GET /api/source/v1/events
@@ -110,7 +110,7 @@ source.error
 }
 ```
 
-当前 M2 adapter 基于 session 快照 diff 发出该事件。若消息数增长，通常会紧接着发出一到多个 `message.appended`。
+当前 adapter 基于 session 快照 diff 发出该事件。若消息数增长，通常会紧接着发出一到多个 `message.appended`。
 
 ### `message.appended`
 
@@ -130,15 +130,15 @@ source.error
 }
 ```
 
-首期消费锚点策略：
+当前消费锚点策略：
 
 ```text
 sessionId + messageOrdinal
 ```
 
-这与当前 PRD/计划中的 MVP 锚点策略一致。
+这与当前 source 锚点策略一致。
 
-消费建议：
+消费方应按以下语义处理：
 
 - 将 `message.appended` 视为增量拉取 fast path
 - 将 `session.updated` 视为 fallback refresh 信号
@@ -159,8 +159,8 @@ sessionId + messageOrdinal
 }
 ```
 
-## 当前实现说明
+## 实现说明
 
 - 现有 AgentsView broadcaster 仍然只提供粗粒度 `scope` 变化。
-- M2 通过 `internal/source` adapter 在 source 层做 session 快照 diff，并在消息数增长时查询增量消息，补齐 `message.appended`。
-- 因此 `/api/source/v1/events` 暂时是“稳定 contract + adapter 推导语义”，而不是底层原生事件直通。
+- `internal/source` adapter 在 source 层做 session 快照 diff，并在消息数增长时查询增量消息，补齐 `message.appended`。
+- 因此 `/api/source/v1/events` 当前是“稳定 contract + adapter 推导语义”，而不是底层原生事件直通。
