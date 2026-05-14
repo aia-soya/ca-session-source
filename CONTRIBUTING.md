@@ -10,19 +10,21 @@
 
 ## 分支策略
 
-推荐长期采用以下分支约定：
+当前采用以下分支约定：
 
 ```text
 upstream/main         # 上游权威基线
-origin/main           # fork 对齐 upstream/main 的镜像分支
-ca-session-source     # 本项目主开发分支
+main                  # 本项目默认开发 / 发布分支
+upstream-sync         # 可选：fork 内部的 upstream 镜像分支
 feature/source-*      # 具体功能分支
 ```
 
 约束：
 
-- `main` 应尽量保持可快速对齐 `upstream/main`。
-- source 研发工作优先在 `ca-session-source` 或 `feature/source-*` 上进行。
+- `main` 作为本项目默认主线，承担日常开发、发布和打 tag。
+- `upstream/main` 只通过 remote 跟踪，不再复用 `main` 分支承担镜像角色。
+- 如需在 fork 内保留上游镜像，使用 `upstream-sync` 之类不会与默认主线冲突的名称。
+- source 研发工作优先在 `main` 或 `feature/source-*` 上进行。
 - 若当前分支状态与上述约定不一致，先参考 [docs/source/upstream-merge-checklist.md](./docs/source/upstream-merge-checklist.md) 校正，再继续扩展功能。
 
 ## 允许新增的区域

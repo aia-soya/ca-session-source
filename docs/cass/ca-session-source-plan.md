@@ -56,16 +56,16 @@ M7：工程化、测试与发布
 交付：
   - upstream remote
   - origin remote
-  - main 同步 upstream/main
-  - ca-session-source 作为本项目开发分支
+  - main 作为本项目默认开发 / 发布分支
+  - upstream/main 作为上游权威基线持续可同步
   - AGENTS.md / CONTRIBUTING.md 增加 fork 约束
 ```
 
 推荐分支：
 
 ```text
-main                 # 跟踪 upstream/main，尽量干净
-ca-session-source    # 本项目主开发分支
+main                 # 本项目默认开发 / 发布分支
+upstream-sync        # 可选：fork 内部 upstream 镜像分支
 feature/source-*     # 具体功能分支
 ```
 
@@ -731,8 +731,8 @@ OpenAPI artifact
 
 ```text
 每周或每两周同步 upstream/main
-先合 main
-再合 ca-session-source
+如保留镜像分支，先更新 upstream-sync
+再同步 main
 跑 smoke tests
 修 patch map
 ```

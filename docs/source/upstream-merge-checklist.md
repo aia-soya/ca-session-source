@@ -17,16 +17,17 @@
 
 ```text
 upstream/main         # 上游权威基线
-origin/main           # fork 镜像分支，尽量与 upstream/main 对齐
-ca-session-source     # 本项目主开发分支
+main                  # 本项目默认开发 / 发布分支
+upstream-sync         # 可选：fork 内部 upstream 镜像分支
 feature/source-*      # 功能开发分支
 ```
 
 原则：
 
-- `main` 尽量保持“可快速追平 upstream”的状态。
-- 长期 source 研发改动不要直接堆在 `main` 上。
-- 功能分支优先从 `ca-session-source` 拉出。
+- `main` 是本项目默认主线，承担日常开发、发布与 tag。
+- `upstream/main` 只通过 remote 跟踪，不再让 `main` 承担镜像角色。
+- 如需保留 fork 内部镜像，使用 `upstream-sync` 之类不会与默认主线冲突的名称。
+- 功能分支优先从 `main` 拉出。
 
 ## 同步前检查
 
@@ -47,34 +48,33 @@ git branch -vv
 
 ## 同步流程
 
-如果 `origin/main` 作为 fork 镜像分支：
+如需维护 fork 内部 `upstream-sync` 镜像分支：
 
 ```bash
 git fetch upstream main
-git fetch origin main
-git switch main
+git switch upstream-sync
 git merge --ff-only upstream/main
-git push origin main
+git push origin upstream-sync
 ```
 
-然后把 source 开发分支对齐到新的 `main`：
+然后把项目主线对齐到新的 upstream 基线：
 
 ```bash
-git switch ca-session-source
-git rebase main
+git switch main
+git rebase upstream/main
 ```
 
 如需采用 merge，也可以：
 
 ```bash
-git switch ca-session-source
-git merge --no-ff main
+git switch main
+git merge --no-ff upstream/main
 ```
 
 约束：
 
-- `main` 对齐 upstream 时优先使用 fast-forward。
-- 除非有明确原因，不要在 `main` 上制造额外 fork-only 提交。
+- `upstream-sync` 对齐 upstream 时优先使用 fast-forward。
+- 除非有明确原因，不要让项目主线之外的镜像分支承载 fork-only 提交。
 - 若当前仓库历史尚未完全切到该分支模型，先按本文记录事实，再逐步收敛。
 
 ## 必查差异面
@@ -199,7 +199,7 @@ cd frontend && npm run test
 
 本次 upstream 同步完成，至少满足：
 
-- `main` 已与 `upstream/main` 对齐，或偏差已明确记录
+- `upstream/main` 的变更已同步到 `main`，并且同步方式已明确记录
 - fork patch 面已在 [fork-patch-map.md](./fork-patch-map.md) 中更新
 - 相关 smoke tests 已执行，结果已记录
 - `STATUS.md` 已更新同步结论、风险与下一步
