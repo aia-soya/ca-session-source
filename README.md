@@ -251,6 +251,23 @@ frontend/           Svelte 5 SPA (Vite, TypeScript)
 desktop/            Tauri desktop wrapper
 ```
 
+### ca-session-source Engineering
+
+本 fork 在 `AgentsView` 基线之上额外维护 source facade、`/api/source/v1` 与 TypeScript SDK。
+
+常用 source 工程化入口：
+
+```bash
+make source-test        # source Go contract tests
+make source-sdk-install # install sdk/ts deps
+make source-sdk-test    # sdk/ts contract tests
+make source-sdk-build   # build sdk/ts dist artifacts
+make source-smoke       # source API smoke harness
+make source-ci          # run the source-focused matrix
+```
+
+补充说明见 [docs/source/engineering.md](./docs/source/engineering.md)。
+
 ## Acknowledgements
 
 Inspired by

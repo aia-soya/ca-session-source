@@ -21,8 +21,11 @@ import (
 type smokeEnv struct {
 	srv         *server.Server
 	db          *db.DB
+	engine      *syncpkg.Engine
 	broadcaster *server.Broadcaster
 	httpServer  *httptest.Server
+	claudeDir   string
+	codexDir    string
 }
 
 type smokeEnvOptions struct {
@@ -86,7 +89,10 @@ func newSmokeEnv(t *testing.T, opts smokeEnvOptions) *smokeEnv {
 	return &smokeEnv{
 		srv:         srv,
 		db:          database,
+		engine:      engine,
 		broadcaster: broadcaster,
 		httpServer:  httpServer,
+		claudeDir:   claudeDir,
+		codexDir:    codexDir,
 	}
 }

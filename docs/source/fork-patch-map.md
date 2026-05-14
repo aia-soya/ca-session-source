@@ -140,6 +140,38 @@
 | `2026-05-14` | `A` | `sdk/ts/examples/smoke/smoke_env_test.go` | `M6` | 抽出 smoke 测试环境搭建 helper，分离 SQLite/server 初始化职责 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
 | `2026-05-14` | `A` | `sdk/ts/examples/smoke/smoke_process_test.go` | `M6` | 抽出 smoke Node 进程编排、结果等待与 SDK build helper，降低 support file 混合职责 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
 | `2026-05-14` | `A` | `sdk/ts/examples/smoke/smoke_transport_test.go` | `M6` | 抽出 source events 断连注入 helper，隔离 HTTP transport 语义测试 seam | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `M` | `Makefile` | `M7` | 新增 `source-test`、`source-smoke`、`source-sdk-*`、`source-ci` 工程化入口，并将 SDK release-check 与 tarball 校验纳入 source 主链路 | 低 | `make source-ci` |
+| `2026-05-14` | `M` | `.github/workflows/ci.yml` | `M7` | 新增独立 `source` CI job，安装 Go/Node 后执行 source 专项矩阵 | 低 | GitHub Actions / `make source-ci` |
+| `2026-05-14` | `M` | `README.md` | `M7` | 在仓库开发入口补充 source 工程化命令与文档链接 | 低 | 文档审阅 |
+| `2026-05-14` | `A` | `docs/source/engineering.md` | `M7` | 新增 source 工程化、测试矩阵、CI、SDK tarball 发布与 fixture 约定文档 | 低 | 文档审阅 |
+| `2026-05-14` | `M` | `docs/source/upstream-merge-checklist.md` | `M7` | 在 upstream merge smoke tests 中纳入 `make source-ci` | 低 | 文档审阅 |
+| `2026-05-14` | `A` | `testdata/codex/README.md` | `M7` | 新增顶层 Codex fixture 目录说明，约束最小脱敏样本的维护方式 | 低 | 文档审阅 |
+| `2026-05-14` | `A` | `testdata/codex/minimal_session.jsonl` | `M7` | 新增顶层最小 Codex transcript fixture，避免测试依赖开发机真实目录 | 低 | 文档审阅 |
+| `2026-05-14` | `A` | `testdata/codex/malformed_session.jsonl` | `M7` | 新增顶层 Codex 异常 fixture，用于验证坏行可恢复解析与既有 parser 元数据语义 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `testdata/codex/paginated_session.jsonl` | `M7` | 新增顶层 Codex 大 session fixture，用于验证 tail snapshot、history pagination 与 fixture-driven source smoke | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `testdata/codex/paginated_rich_tool_session.jsonl` | `M7` | 新增顶层 Codex 带 richer tool-call 语义的大 session fixture，用于在分页主链中固定 wait output 与 subagent link 的消费语义 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `testdata/codex/paginated_tool_session.jsonl` | `M7` | 新增顶层 Codex 带多个 tool-call 的大 session fixture，用于验证分页与 tool-call 落盘/消费组合场景 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `testdata/codex/rich_tool_session.jsonl` | `M7` | 新增顶层 Codex richer tool fixture，用于验证 wait output 聚合结果与 subagent session link | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `testdata/codex/truncated_session.jsonl` | `M7` | 新增顶层 Codex 尾部坏行 fixture，用于固定“跳过坏尾行但不落 truncated parser metadata”的当前上游语义 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `testdata/claude/README.md` | `M7` | 新增顶层 Claude fixture 目录说明，约束最小脱敏样本的维护方式 | 低 | 文档审阅 |
+| `2026-05-14` | `A` | `testdata/claude/minimal_session.jsonl` | `M7` | 新增顶层最小 Claude transcript fixture，避免测试依赖开发机真实目录 | 低 | 文档审阅 |
+| `2026-05-14` | `A` | `testdata/claude/malformed_session.jsonl` | `M7` | 新增顶层 Claude 异常 fixture，用于验证 malformed line 可恢复解析与落盘语义 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `testdata/claude/paginated_session.jsonl` | `M7` | 新增顶层 Claude 大 session fixture，用于验证 tail snapshot、history pagination 与 fixture-driven source smoke | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `testdata/claude/paginated_rich_tool_session.jsonl` | `M7` | 新增顶层 Claude 带 richer tool-call 语义的大 session fixture，用于在分页主链中固定 tool result 与 subagent link 的消费语义 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `testdata/claude/paginated_tool_session.jsonl` | `M7` | 新增顶层 Claude 带多个 tool-call 的大 session fixture，用于验证分页与 tool-call 落盘/消费组合场景 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `testdata/claude/rich_tool_session.jsonl` | `M7` | 新增顶层 Claude richer tool fixture，用于验证 tool result 聚合结果与 subagent session link | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `testdata/claude/truncated_session.jsonl` | `M7` | 新增顶层 Claude 尾部坏行 fixture，用于固定 `termination_status=truncated` 与 `is_truncated` 之间的当前上游语义差异 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `M` | `sdk/ts/examples/smoke/smoke_env_test.go` | `M7` | 暴露 smoke 的临时 agent 目录与 engine，便于把仓内 fixture 接入 discovery/sync 回归 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `sdk/ts/examples/smoke/smoke_fixture_sync_test.go` | `M7` | 新增 fixture-driven sync smoke，验证仓内 Codex/Claude 正常样本与异常 fixture 经临时目录 discovery/sync 后写入测试 DB，并覆盖 project/tool-call/file-path/parser 状态、Claude/Codex truncated tail 语义且不扫描真实 home 目录 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `sdk/ts/examples/smoke/smoke_fixture_pagination_test.go` | `M7` | 新增 fixture-driven 大 session smoke，统一验证 Claude/Codex fixture 经 discovery/sync 后再走 source API/SDK tail snapshot、history pagination、多 tool-call 读取、richer tool semantics 与增量补洞链路 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `sdk/ts/examples/smoke/smoke_fixture_tool_semantics_test.go` | `M7` | 新增 fixture-driven richer tool semantics smoke，验证 source API/SDK 对 resultContent、resultContentLength 与 subagentSessionId 的可见契约 | 低 | `go test ./sdk/ts/examples/smoke -count=1` |
+| `2026-05-14` | `A` | `sdk/ts/scripts/verify-pack-artifact.mjs` | `M7` | 新增 SDK tarball export-level verifier，按 `package.json` 的 `main/types/exports` 校验打包产物入口完整性 | 低 | `make source-sdk-pack-check` |
+| `2026-05-14` | `A` | `sdk/ts/scripts/verify-release-metadata.mjs` | `M7` | 新增 SDK release metadata verifier，校验 package metadata 并在 `private: true` 下对 npm dry-run 做策略化 gate | 低 | `make source-sdk-release-check` |
+| `2026-05-14` | `A` | `sdk/ts/LICENSE` | `M7` | 为 SDK 发布产物补本地 LICENSE，避免未来 tarball/npm 包缺少授权文件 | 低 | `make source-sdk-release-check` |
+| `2026-05-14` | `M` | `sdk/ts/package.json` | `M7` | 补齐 SDK 发布元数据、LICENSE 打包项、release-check script 与 tarball-first 发布 gate 配置 | 低 | `npm test` / `npm run release-check` |
+| `2026-05-14` | `M` | `sdk/ts/README.md` | `M7` | 在 SDK 文档中明确 tarball-first 安装方式与 `release-check` 语义 | 低 | 文档审阅 |
+| `2026-05-14` | `M` | `docs/source/engineering.md` | `M7` | 将 SDK tarball pack-check 纳入工程化与发布流程文档，明确 `source-ci` 的发布前校验职责 | 低 | 文档审阅 |
+| `2026-05-14` | `M` | `STATUS.md` | `M7` | 回填 source 工程化、fixture、CI 与发布说明的真实进展 | 低 | 文档审阅 |
 
 ## 与 upstream merge 的关系
 

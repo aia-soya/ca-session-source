@@ -23,6 +23,8 @@ export function createSmokeResult(baseUrl, sessionId) {
       fetchedPageSizes: [],
       cachedOrdinals: [],
       toolCallCount: 0,
+      toolCallNames: [],
+      toolCalls: [],
     },
     eventFlow: {
       openCount: 0,

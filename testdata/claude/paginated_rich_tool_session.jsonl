@@ -1,0 +1,10 @@
+{"type":"user","timestamp":"2024-01-01T10:00:00Z","message":{"content":"message-0"},"cwd":"/Users/alice/code/my-app"}
+{"type":"assistant","timestamp":"2024-01-01T10:00:05Z","message":{"model":"claude-sonnet-4-20250514","content":[{"type":"text","text":"message-1"}],"usage":{"input_tokens":10,"output_tokens":5}}}
+{"type":"user","timestamp":"2024-01-01T10:01:00Z","message":{"content":"message-2"}}
+{"type":"assistant","timestamp":"2024-01-01T10:01:05Z","message":{"model":"claude-sonnet-4-20250514","content":[{"type":"text","text":"message-3"},{"type":"tool_use","id":"toolu_paginated_agent","name":"Agent","input":{"description":"inspect schema","subagent_type":"Explore","prompt":"inspect the schema"}}],"usage":{"input_tokens":11,"output_tokens":6}}}
+{"type":"user","timestamp":"2024-01-01T10:02:00Z","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_paginated_agent","content":"schema inspected"},{"type":"text","text":"message-4"}]},"toolUseResult":{"status":"completed","agentId":"childschema1"}}
+{"type":"assistant","timestamp":"2024-01-01T10:02:05Z","message":{"model":"claude-sonnet-4-20250514","content":[{"type":"text","text":"message-5"}],"usage":{"input_tokens":12,"output_tokens":7}}}
+{"type":"user","timestamp":"2024-01-01T10:03:00Z","message":{"content":"message-6"}}
+{"type":"assistant","timestamp":"2024-01-01T10:03:05Z","message":{"model":"claude-sonnet-4-20250514","content":[{"type":"text","text":"message-7"},{"type":"tool_use","id":"toolu_paginated_read","name":"Read","input":{"file_path":"README.md"}}],"usage":{"input_tokens":13,"output_tokens":8}}}
+{"type":"user","timestamp":"2024-01-01T10:04:00Z","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_paginated_read","content":"README loaded"},{"type":"text","text":"message-8"}]}}
+{"type":"assistant","timestamp":"2024-01-01T10:04:05Z","message":{"model":"claude-sonnet-4-20250514","content":[{"type":"text","text":"message-9"}],"usage":{"input_tokens":14,"output_tokens":9}}}

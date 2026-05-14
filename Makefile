@@ -19,7 +19,7 @@ AIR_BIN := $(shell if command -v air >/dev/null 2>&1; then command -v air; \
 	elif [ -x "$(GOPATH_FIRST)/bin/air" ]; then printf "%s" "$(GOPATH_FIRST)/bin/air"; \
 	fi)
 
-.PHONY: build build-release install frontend frontend-dev dev check-air air-install desktop-dev desktop-build desktop-macos-app desktop-macos-dmg desktop-windows-installer desktop-linux-appimage desktop-app test test-short test-postgres test-postgres-ci postgres-up postgres-down test-ssh test-ssh-ci ssh-up ssh-down e2e vet lint lint-ci lint-golangci lint-golangci-ci nilaway nilaway-golangci-build lint-tools tidy clean release release-darwin-arm64 release-darwin-amd64 release-linux-amd64 install-hooks ensure-embed-dir dev-snapshot help
+.PHONY: build build-release install frontend frontend-dev dev check-air air-install desktop-dev desktop-build desktop-macos-app desktop-macos-dmg desktop-windows-installer desktop-linux-appimage desktop-app test test-short test-postgres test-postgres-ci postgres-up postgres-down test-ssh test-ssh-ci ssh-up ssh-down e2e vet lint lint-ci lint-golangci lint-golangci-ci nilaway nilaway-golangci-build lint-tools tidy clean release release-darwin-arm64 release-darwin-amd64 release-linux-amd64 install-hooks ensure-embed-dir dev-snapshot source-test source-smoke source-sdk-install source-sdk-test source-sdk-build source-sdk-pack source-sdk-pack-check source-sdk-release-check source-ci help
 
 # Ensure go:embed has at least one file (no-op if frontend is built)
 ensure-embed-dir:
@@ -265,6 +265,56 @@ test-ssh-ci: ensure-embed-dir
 e2e:
 	cd frontend && npx playwright test
 
+# Run source-specific Go contract tests
+source-test: ensure-embed-dir
+	go test -tags fts5 ./internal/source ./internal/server -count=1
+
+# Run source SDK smoke harness tests
+source-smoke: ensure-embed-dir
+	go test -tags fts5 ./sdk/ts/examples/smoke -count=1
+
+# Install source SDK dependencies
+source-sdk-install:
+	cd sdk/ts && npm ci
+
+# Run source SDK contract tests
+source-sdk-test:
+	cd sdk/ts && npm test
+
+# Build source SDK dist artifacts
+source-sdk-build:
+	cd sdk/ts && npm run build
+
+# Pack source SDK tarball artifact
+source-sdk-pack:
+	cd sdk/ts && npm pack
+
+# Verify source SDK release metadata and future publish readiness.
+source-sdk-release-check:
+	cd sdk/ts && npm run release-check
+
+# Pack source SDK tarball into a temporary directory and verify
+# the published artifact includes the expected release surface.
+source-sdk-pack-check:
+	@tmpdir=$$(mktemp -d); \
+	trap 'rm -rf "$$tmpdir"' EXIT; \
+	cd sdk/ts && npm pack --pack-destination "$$tmpdir" >/dev/null; \
+	tarball=$$(find "$$tmpdir" -maxdepth 1 -type f -name '*.tgz' | head -n 1); \
+	if [ -z "$$tarball" ]; then \
+		echo "error: npm pack did not produce a tarball" >&2; \
+		exit 1; \
+	fi; \
+	node scripts/verify-pack-artifact.mjs "$$tarball"
+
+# Run the source-focused CI matrix locally
+source-ci: ensure-embed-dir source-sdk-install
+	$(MAKE) source-test
+	$(MAKE) source-sdk-test
+	$(MAKE) source-sdk-build
+	$(MAKE) source-sdk-release-check
+	$(MAKE) source-sdk-pack-check
+	$(MAKE) source-smoke
+
 # Vet
 vet: ensure-embed-dir
 	go vet -tags fts5 ./...
@@ -394,6 +444,15 @@ help:
 	@echo "  ssh-up         - Start test SSH container"
 	@echo "  ssh-down       - Stop test SSH container"
 	@echo "  e2e            - Run Playwright E2E tests"
+	@echo "  source-test    - Run source Go contract tests"
+	@echo "  source-smoke   - Run source SDK smoke harness tests"
+	@echo "  source-sdk-install - Install source SDK dependencies"
+	@echo "  source-sdk-test - Run source SDK contract tests"
+	@echo "  source-sdk-build - Build source SDK dist artifacts"
+	@echo "  source-sdk-pack - Pack source SDK tarball artifact"
+	@echo "  source-sdk-release-check - Verify SDK release metadata and publish readiness"
+	@echo "  source-sdk-pack-check - Verify the packed SDK tarball contents"
+	@echo "  source-ci      - Run the source-focused CI matrix locally"
 	@echo "  vet            - Run go vet"
 	@echo "  lint           - Run golangci-lint and NilAway (auto-fix golangci issues)"
 	@echo "  lint-ci        - Run golangci-lint and NilAway (no fix, for CI)"

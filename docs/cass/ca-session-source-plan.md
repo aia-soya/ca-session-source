@@ -706,6 +706,8 @@ unknown event type
 
 # M7：工程化、测试与发布
 
+当前状态：已完成（2026-05-14）。
+
 ## 目标
 
 让 ca-session-source fork 可长期维护、可同步 upstream、可稳定使用。
@@ -778,6 +780,17 @@ OpenAPI artifact
 - 新增功能有测试
 - SDK 可被固定版本依赖
 - upstream merge 后能快速定位冲突
+```
+
+当前完成情况：
+
+```text
+- 已提供固定仓库命令入口：make source-test / source-sdk-test / source-sdk-build / source-sdk-release-check / source-sdk-pack-check / source-smoke / source-ci
+- 已建立独立 source CI job，并将 make source-ci 纳入主链
+- 已建立 Codex/Claude 顶层 fixture 矩阵，避免依赖真实 ~/.codex / ~/.claude
+- 已通过 fixture-driven smoke 覆盖正常、malformed、truncated、pagination、tool-call、richer tool semantics 等主场景
+- 已建立 SDK tarball-first 发布校验、release metadata gate 与 export-level pack verifier
+- 已将工程化入口、fixture 约束与 upstream merge smoke 要求沉淀到文档
 ```
 
 ---

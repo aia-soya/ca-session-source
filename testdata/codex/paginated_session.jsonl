@@ -1,0 +1,11 @@
+{"payload":{"cwd":"/Users/alice/code/my-api","id":"paginated-codex-123","originator":"user"},"timestamp":"2024-01-01T10:00:00Z","type":"session_meta"}
+{"payload":{"content":[{"text":"message-0","type":"input_text"}],"role":"user"},"timestamp":"2024-01-01T10:00:01Z","type":"response_item"}
+{"payload":{"content":[{"text":"message-1","type":"output_text"}],"role":"assistant"},"timestamp":"2024-01-01T10:00:05Z","type":"response_item"}
+{"payload":{"content":[{"text":"message-2","type":"input_text"}],"role":"user"},"timestamp":"2024-01-01T10:01:01Z","type":"response_item"}
+{"payload":{"content":[{"text":"message-3","type":"output_text"}],"role":"assistant"},"timestamp":"2024-01-01T10:01:05Z","type":"response_item"}
+{"payload":{"content":[{"text":"message-4","type":"input_text"}],"role":"user"},"timestamp":"2024-01-01T10:02:01Z","type":"response_item"}
+{"payload":{"content":[{"text":"message-5","type":"output_text"}],"role":"assistant"},"timestamp":"2024-01-01T10:02:05Z","type":"response_item"}
+{"payload":{"content":[{"text":"message-6","type":"input_text"}],"role":"user"},"timestamp":"2024-01-01T10:03:01Z","type":"response_item"}
+{"payload":{"content":[{"text":"message-7","type":"output_text"}],"role":"assistant"},"timestamp":"2024-01-01T10:03:05Z","type":"response_item"}
+{"payload":{"content":[{"text":"message-8","type":"input_text"}],"role":"user"},"timestamp":"2024-01-01T10:04:01Z","type":"response_item"}
+{"payload":{"content":[{"text":"message-9","type":"output_text"}],"role":"assistant"},"timestamp":"2024-01-01T10:04:05Z","type":"response_item"}

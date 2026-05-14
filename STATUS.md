@@ -16,6 +16,7 @@
 - M4 已完成：已建立 SDK smoke harness，并用真实 HTTP/SSE 服务验证 snapshot、event-driven incremental fetch、重连补洞与历史翻页闭环。
 - M5 已完成：已明确 `sessionId + messageOrdinal` 消息锚点策略，补齐增量消费文档、SDK 显式 anchor contract 与兼容性测试，并把原始 message page 与 transcript helper 的分页语义边界收敛到统一口径。
 - M6 已完成：已新增 `/api/source/v1/sessions*`、`tool-calls`、`version`、`health` 稳定 REST facade，补齐 `schemaVersion`、OpenAPI 与合同测试，并将 SDK 收敛为仅消费 `/api/source/v1`。
+- M7 已完成：已补齐 source 专项工程化入口、仓内 Codex/Claude fixture 矩阵、独立 CI job、SDK release/pack 校验与 fixture-driven smoke 主链，把测试、发布与 upstream sync 回归收敛到固定命令与文档。
 
 ## 最近完成
 
@@ -95,6 +96,26 @@ source.error
 - 继续细化 smoke Go helper：将原 `smoke_support_test.go` 再拆成 env / process / transport 三个职责文件，分离测试环境搭建、Node 进程编排与断连注入 helper，降低 smoke harness 的定位成本。
 - 继续细化 SDK REST contract：`sdk/ts/test/client-rest-contract.js` 现在只做 REST 顶层编排，sessions、messages、tool-calls、version/health 与 error path 分别拆到独立 suite，避免 source API 合同继续集中堆叠在单一测试文件中。
 - 为 SDK contract tests 抽取共享 fixture builder：新增 `sdk/ts/test/contract-fixtures.js`，集中提供 session/message/tool-call/version/health/event payload builder，让 REST 与 transcript suites 只覆写关心字段，降低测试样板和协议字段漂移风险。
+- 新增 `Makefile` 的 `source-test`、`source-smoke`、`source-sdk-*`、`source-ci` 入口，把 source REST/SSE、SDK contract/build、smoke harness 收敛成仓库级固定命令。
+- 在 `.github/workflows/ci.yml` 中新增独立 `source` job，安装 Go/Node 后执行 `make source-ci`，确保 source SDK smoke harness 不再只在缺少 Node 的整仓 `go test ./...` 中被动 skip。
+- 新增 [`docs/source/engineering.md`](./docs/source/engineering.md)，集中记录 M7 的测试矩阵、fixture 位置、CI 入口、SDK tarball 发布流程与 upstream 同步后的专项 smoke 要求。
+- 新增顶层 `testdata/codex/minimal_session.jsonl` 与 `testdata/claude/minimal_session.jsonl`，提供脱敏、最小、稳定的 source fixture，避免后续测试依赖开发机真实 `~/.codex` / `~/.claude` 目录。
+- 在 `README.md` 与 `docs/source/upstream-merge-checklist.md` 中补 source 工程化入口与 `make source-ci` smoke 步骤，让日常开发和 upstream merge 后回归都能走统一路径。
+- 将顶层 fixture 真正接入 source smoke：`sdk/ts/examples/smoke` 新增 fixture-driven sync 回归，先把仓内 Codex/Claude `.jsonl` 复制到 `t.TempDir()` 下的模拟 agent 目录，再通过 `sync.Engine.SyncAll(...)` 写入测试 SQLite，验证 discovery/sync 不会扫描或污染本机真实 home 目录。
+- 将 SDK tarball 校验正式接入 source 工程化主链路：`make source-ci` 现在会额外执行 `source-sdk-pack-check`，在临时目录运行 `npm pack` 并验证发布包至少包含 `package.json`、`README.md`、`dist/index.js` 与 `dist/index.d.ts`，避免“能 build 但打包产物缺主入口”后才发现发布回归。
+- 扩展 fixture-driven smoke 的断言颗粒度：除“session 被 sync 入库”外，现在还会校验 fixture session 的 project、tool-call 与 file path，提升 discovery/sync 到 DB 落盘语义的回归覆盖。
+- 将 tarball 校验继续升级为 export-level verifier：新增 `sdk/ts/scripts/verify-pack-artifact.mjs`，按 SDK `package.json` 中声明的 `main`、`types` 与所有 `exports` 子路径逐项检查打包产物，避免新增导出入口后只更新源码未随 tarball 一起发布。
+- 已重新验证 M7 主链路：`make source-ci` 当前覆盖 source Go contract、SDK test/build、export-level tarball 校验与 fixture-driven smoke，并已在本地通过。
+- 新增 `testdata/claude/malformed_session.jsonl` 与对应 smoke 回归，验证“仓内异常 fixture -> 临时 agent 目录 -> discovery/sync -> SQLite”路径下，`parser_malformed_lines`、`is_truncated`、tool-call 与 project 语义都能稳定落盘，同时继续保证不扫描真实 `~/.claude`。
+- 新增 `testdata/codex/malformed_session.jsonl` 与对应 smoke 回归，验证 Codex 异常 fixture 也已进入 discovery/sync/source 主链；当前行为与 Claude 有所不同，Codex 会跳过坏行并继续落盘有效消息，但不会额外写入 `parser_malformed_lines` 元数据，这一差异已被测试固定下来。
+- 将“发布前校验”正式提到 M7 主链首层：为 `sdk/ts` 新增本地 `LICENSE`、更完整的 npm package metadata，以及 `source-sdk-release-check` / `npm run release-check`；当前会校验 `license`、`repository`、`homepage`、`bugs`、`keywords`、`files`、`publishConfig` 等元数据，并在 `private: true` 下明确报告“跳过 `npm publish --dry-run`，继续按 tarball-first 策略发布”。
+- 新增 `testdata/claude/truncated_session.jsonl` 与对应 smoke 回归，验证 Claude 尾部坏行样本也已进入 fixture-driven discovery/sync/source 主链；当前上游语义会落 `parser_malformed_lines=1` 与 `termination_status=truncated`，但不会额外写入 `is_truncated=true`，这一差异已被测试和文档固定下来。
+- 新增 `testdata/claude/paginated_session.jsonl` 与对应 fixture-driven source API smoke，验证“大 session fixture -> discovery/sync -> source API/SDK tail snapshot -> history pagination -> 增量事件补洞”整条链路；这让 M7 不再只验证 fixture 能入库，也开始固定真实分页消费语义。
+- 新增 `testdata/codex/paginated_session.jsonl`，并将大 session pagination smoke 扩成 Claude/Codex 双 agent 共用回归；现在同一条 fixture-driven smoke 会同时验证两个 agent 经 discovery/sync 后，再走 source API/SDK 的 tail snapshot、history pagination 与增量补洞路径，避免分页覆盖长期偏向单一 agent。
+- 新增 `testdata/codex/truncated_session.jsonl` 与对应 smoke 回归，验证 Codex 尾部坏行样本也已进入 fixture-driven discovery/sync/source 主链；当前上游语义会直接跳过坏尾行，不会额外写入 `parser_malformed_lines`、`is_truncated=true` 或 `termination_status=truncated`，这一点已被测试和文档固定下来。
+- 新增 `testdata/claude/paginated_tool_session.jsonl` 与 `testdata/codex/paginated_tool_session.jsonl`，并将 fixture-driven pagination smoke 扩到“分页 + 多 tool-call”组合场景；现在大 session smoke 不只固定 tail snapshot / history pagination / 增量补洞，也会同步固定 `getToolCalls(...)` 的数量与 tool 名称顺序。
+- 新增 `testdata/claude/rich_tool_session.jsonl` 与 `testdata/codex/rich_tool_session.jsonl`，并增加 fixture-driven richer tool semantics smoke；现在 M7 还会通过真实 source API / SDK 固定 `resultContent`、`resultContentLength` 与 `subagentSessionId`，覆盖 tool result / subagent link 这层消费语义。
+- 新增 `testdata/claude/paginated_rich_tool_session.jsonl` 与 `testdata/codex/paginated_rich_tool_session.jsonl`，并将 fixture-driven pagination smoke 扩到“分页 + richer tool-call semantics”组合场景；现在 tail snapshot、history pagination、增量补洞与 `resultContent` / `resultContentLength` / `subagentSessionId` 已经进入同一条大 session 主链回归。
 
 ## 当前待办
 
@@ -103,6 +124,10 @@ source.error
 - 持续观察 M5/M6 后续反馈：关注真实 Codex / Claude session 下更大规模分页体验、长时间断线后的补洞成本，以及是否需要把 helper 里的 `hasMore`/anchor 语义进一步下沉为稳定 REST 合同。
 - 继续观察 SDK 模块边界：若后续 transcript helper 或 `/api/source/v1/*` 继续扩展，优先沿现有 `buffer / sync / watch` 与 `transport / mapper / facade` 分层演进，避免重新回到单文件职责堆积。
 - 评估后续是否要在 source 协议内继续下沉更稳定的分页 contract，以及 `version/health` 是否需要进一步承载 endpoint capability 元数据。
+- M7 后续增强：如需继续提升 discovery/sync/source 全链路覆盖，可补更多带 tool call、异常行、分页边界的 fixture 样本，或把部分回归进一步下沉到更贴近真实 discovery 的路径。
+- M7 后续增强：如需覆盖多次 `tool_result` 聚合、多个 subagent session link、更深 child session tree 或 Claude `is_truncated=true` 物理截断位，可追加专用 richer fixture 或生成 helper。
+- M7 后续增强：当决定切换到 npm 正式发布时，再补版本约定、tag 命名、binary/OpenAPI artifact 策略，并将当前 `release-check` 升级为真正执行 `npm publish --dry-run` 的 gate。
+- M7 后续增强：如需继续提高发布校验强度，可再把 `source-sdk-pack-check` 扩展到 LICENSE/CHANGELOG、dry-run 元数据或 semver/tag 一致性检查。
 - 持续维护 `docs/source/fork-patch-map.md`，避免 source 改动扩散到 upstream 核心目录。
 
 ## 已知说明

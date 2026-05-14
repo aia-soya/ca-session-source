@@ -38,6 +38,13 @@ export async function runSmoke(config, { stdout = process.stdout } = {}) {
 
   const toolCalls = await client.getToolCalls(config.sessionId);
   result.snapshot.toolCallCount = toolCalls.length;
+  result.snapshot.toolCallNames = toolCalls.map((toolCall) => toolCall.toolName);
+  result.snapshot.toolCalls = toolCalls.map((toolCall) => ({
+    toolName: toolCall.toolName,
+    resultContentLength: toolCall.resultContentLength ?? 0,
+    resultContent: toolCall.resultContent ?? null,
+    subagentSessionId: toolCall.subagentSessionId ?? null,
+  }));
 
   const signals = createEventSignals(config.eventTimeoutMs);
   let sawSessionUpdated = false;

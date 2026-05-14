@@ -4,9 +4,31 @@
   "description": "TypeScript SDK for the ca-session-source HTTP and SSE contracts.",
   "type": "module",
   "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/aia-soya/ca-session-source/tree/main/sdk/ts#readme",
+  "bugs": {
+    "url": "https://github.com/aia-soya/ca-session-source/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aia-soya/ca-session-source.git",
+    "directory": "sdk/ts"
+  },
+  "keywords": [
+    "ca-session-source",
+    "transcript",
+    "sessions",
+    "sse",
+    "codex",
+    "claude"
+  ],
+  "sideEffects": false,
   "main": "./dist/index.js",
   "engines": {
     "node": "^20.19 || ^22.12 || >=24"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "exports": {
     ".": {
@@ -43,11 +65,13 @@
   "types": "./dist/index.d.ts",
   "files": [
     "README.md",
+    "LICENSE",
     "dist"
   ],
   "scripts": {
     "build": "unbuild && node ./scripts/postbuild-fix-extensions.mjs && node --eval \"await import('./dist/index.js')\"",
     "prepack": "npm run build && npm run typecheck",
+    "release-check": "node ./scripts/verify-release-metadata.mjs",
     "smoke": "node examples/smoke/run.js",
     "test": "npm run build && npm run typecheck && node --experimental-strip-types --test src/**/*.test.ts test/**/*.test.js",
     "typecheck": "tsc --noEmit"

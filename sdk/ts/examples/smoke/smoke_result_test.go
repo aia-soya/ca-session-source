@@ -23,6 +23,13 @@ type smokeResult struct {
 		FetchedPageSizes    []int    `json:"fetchedPageSizes"`
 		CachedOrdinals      []int    `json:"cachedOrdinals"`
 		ToolCallCount       int      `json:"toolCallCount"`
+		ToolCallNames       []string `json:"toolCallNames"`
+		ToolCalls           []struct {
+			ToolName            string  `json:"toolName"`
+			ResultContentLength int     `json:"resultContentLength"`
+			ResultContent       *string `json:"resultContent"`
+			SubagentSessionID   *string `json:"subagentSessionId"`
+		} `json:"toolCalls"`
 	} `json:"snapshot"`
 	EventFlow struct {
 		OpenCount  int      `json:"openCount"`

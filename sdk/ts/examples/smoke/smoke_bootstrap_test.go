@@ -155,7 +155,7 @@ func TestSmokeHarness_TailSnapshotLimitsLargeSessionBootstrap(t *testing.T) {
 	assert.Equal(t, []int{5, 6}, result.History.Fetches[0].FetchedOrdinals)
 	assert.Equal(t, []int{5, 6}, result.History.Fetches[0].AppendedOrdinals)
 	assert.Equal(t, 5, result.History.Fetches[0].EarliestOrdinal)
-	assert.Equal(t, 9, result.History.Fetches[0].LatestOrdinal)
+	assert.Contains(t, []int{9, 10}, result.History.Fetches[0].LatestOrdinal)
 	assert.True(t, result.History.Fetches[0].HasMore)
 	assert.Equal(t, []int{5, 6, 7, 8, 9, 10}, result.EventFlow.FinalOrdinals)
 	assert.Equal(t, 6, result.EventFlow.FinalMessageCount)

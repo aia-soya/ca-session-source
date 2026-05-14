@@ -170,6 +170,12 @@ git merge --no-ff main
 make test
 ```
 
+### Source 专项矩阵
+
+```bash
+make source-ci
+```
+
 ### 前端构建
 
 ```bash

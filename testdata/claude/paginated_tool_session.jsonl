@@ -1,0 +1,10 @@
+{"type":"user","timestamp":"2024-01-01T10:00:00Z","message":{"content":"message-0"},"cwd":"/Users/alice/code/my-app"}
+{"type":"assistant","timestamp":"2024-01-01T10:00:05Z","message":{"model":"claude-sonnet-4-20250514","content":[{"type":"text","text":"message-1"}],"usage":{"input_tokens":10,"output_tokens":5}}}
+{"type":"user","timestamp":"2024-01-01T10:01:00Z","message":{"content":"message-2"}}
+{"type":"assistant","timestamp":"2024-01-01T10:01:05Z","message":{"model":"claude-sonnet-4-20250514","content":[{"type":"text","text":"message-3"}],"usage":{"input_tokens":11,"output_tokens":6}}}
+{"type":"user","timestamp":"2024-01-01T10:02:00Z","message":{"content":"message-4"}}
+{"type":"assistant","timestamp":"2024-01-01T10:02:05Z","message":{"model":"claude-sonnet-4-20250514","content":[{"type":"text","text":"message-5"},{"type":"tool_use","id":"toolu_paginated_1","name":"Read","input":{"file_path":"src/rate_limit.ts"}},{"type":"tool_use","id":"toolu_paginated_2","name":"Edit","input":{"file_path":"src/rate_limit.ts","old_string":"TODO","new_string":"done"}}],"usage":{"input_tokens":12,"output_tokens":7}}}
+{"type":"user","timestamp":"2024-01-01T10:03:00Z","message":{"content":"message-6"}}
+{"type":"assistant","timestamp":"2024-01-01T10:03:05Z","message":{"model":"claude-sonnet-4-20250514","content":[{"type":"text","text":"message-7"}],"usage":{"input_tokens":13,"output_tokens":8}}}
+{"type":"user","timestamp":"2024-01-01T10:04:00Z","message":{"content":"message-8"}}
+{"type":"assistant","timestamp":"2024-01-01T10:04:05Z","message":{"model":"claude-sonnet-4-20250514","content":[{"type":"text","text":"message-9"}],"usage":{"input_tokens":14,"output_tokens":9}}}

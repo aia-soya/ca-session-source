@@ -11,8 +11,12 @@ describe("published type entry points", () => {
 
     assert.equal(pkg.main, "./dist/index.js");
     assert.equal(pkg.types, "./dist/index.d.ts");
-    assert.deepEqual(pkg.files, ["README.md", "dist"]);
+    assert.deepEqual(pkg.files, ["README.md", "LICENSE", "dist"]);
+    assert.equal(pkg.license, "MIT");
+    assert.equal(pkg.publishConfig.access, "public");
+    assert.equal(pkg.repository.directory, "sdk/ts");
     assert.equal(pkg.scripts.build.includes("unbuild"), true);
+    assert.equal(pkg.scripts["release-check"], "node ./scripts/verify-release-metadata.mjs");
     assert.equal(pkg.scripts.typecheck, "tsc --noEmit");
 
     assert.deepEqual(pkg.exports["."], {

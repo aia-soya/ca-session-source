@@ -21,6 +21,8 @@ sessionId + messageOrdinal
 
 当前包会发布由 `unbuild` 自动生成的 `dist/` 运行时代码与 `.d.ts` 声明入口，适合被 workspace、Git URL 或 tarball 直接引用。
 
+当前 `package.json` 仍保留 `private: true`，表示现阶段默认仍按 tarball / workspace 集成使用，而不是直接发 npm registry。
+
 ## 用法
 
 ```ts
@@ -143,8 +145,17 @@ console.log(anchor);
 
 - `npm test`
 - `npm run build`
+- `npm run release-check`
 - `npm run typecheck`
 - `npm run smoke`
+
+`npm run release-check` 会校验：
+
+- package metadata（`license`、`repository`、`homepage`、`bugs`、`keywords`）
+- 发布清单中的 `README.md`、`LICENSE`、`dist`
+- 当前发布策略 gate
+
+在 `private: true` 仍开启时，它会明确提示“跳过 `npm publish --dry-run`”，与当前 tarball-first 策略保持一致。
 
 `npm run smoke` 会执行 [`sdk/ts/examples/smoke/run.js`](./examples/smoke/run.js)。
 它面向一个真实运行中的本地服务，验证：
